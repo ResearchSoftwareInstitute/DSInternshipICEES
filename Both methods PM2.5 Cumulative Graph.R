@@ -1,6 +1,6 @@
 # Rose Wang
 # June 11, 2019
-# PM 2.5 Cumulative Graph
+# PM 2.5 Cumulative Graph both methods:
 # Pulling json file from API directly in R
 # Pulling txt file from API and loading into R
 #
