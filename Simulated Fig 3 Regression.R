@@ -1,7 +1,7 @@
 # Rose Wang
 # June 13, 2019
-# Extended ICEES Fig.3 - 3D Bar Chart
-# Roadway Distance, Max Daily PM 2.5 Exposure, % ED Patients
+# Extended ICEES Fig.3 - Regression from Simulated Data
+# Roadway Distance, Max Daily PM 2.5 Exposure, Number of ED Patients
 #
 rm(list=ls())
 setwd("/Users/rosewang/Downloads/RCompSci")
