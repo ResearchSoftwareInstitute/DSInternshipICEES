@@ -7,7 +7,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 rm(list=ls())
-setwd("/Users/rosewang/Downloads/RCompSci")
+## pdh: Usually it is not advisable to hard code a directory in shared code
+#setwd("/Users/rosewang/Downloads/RCompSci")
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
@@ -24,7 +25,14 @@ library(knitr)
 
 In order to verify the P(XYZ) table, we will first get the Univariate Counts of three variables (Total ED/Inpatient Visits, Average Daily PM 2.5 Exposure, Major Roadway Highway Exposure) from the ICEES API. We will use the parameters of: Cohort 22 (all patients), year 2010, version 1.0.0 of ICEES data, and patient level data. We will also be using the Feature-rich cohort Discovery functionality.
 
-```{r univariate}
+pdh: The following code is used to setup the parameters of the call to the database. This code just needs to be executed before the first call. (or something similar)
+
+```{r univariate, message=FALSE}
+## pdh: a good coding practice is to use the syntax "package::function" the 
+## first time you call a function, especially when the packages are highly
+## specialized
+##
+## no need to see uninformative messages in the markdown document
 url <- "https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/features"
 uni <- GET(url,
           accept_json(),
@@ -39,9 +47,16 @@ uni.json[["version"]] <- NULL
 We will now convert the data from JSON form to a data frame by parsing the values into one big data frame. We will specifically be looking into Total ED/Inpatient Visits, Average Daily PM 2.5 Exposure, Major Roadway Highway Exposure.
 
 ```{r unidataframe}
+## usually it is recommended not to hard code positions
+## if it seems like you must, you should at least show the output so the user
+## can verify that it is correct
 featureNumber <- c(17, 29, 30)
 featureNames <- uni.json[["return value"]][["feature.feature_name"]]
 featureNames <- as.vector(c(featureNames[17], featureNames[29], featureNames[30]))
+## pdh
+cat("Feature Names\n")
+featureNames
+##
 for(i in 1:3){
   assign(paste("freq",uni.json[["return value"]][["feature.feature_name"]][[featureNumber[i]]],sep = ""), data.frame(c(uni.json[["return value"]][["feature.feature_qualifiers"]][[featureNumber[i]]][["value"]], "Total"), frequency = c(uni.json[["return value"]][["feature_matrix"]][[featureNumber[i]]][["frequency"]], sum(uni.json[["return value"]][["feature_matrix"]][[featureNumber[i]]][["frequency"]]))))
   if(i==2){
@@ -54,11 +69,38 @@ for(i in 1:3){
 }
 ```
 
-Finished Tables:
+Finished Tables
 
-``` {r unidisplay, echo=FALSE}
+pdh: I suggest separating the tables into three different outputs and discussing each one briefly. I also suggest that you use much simpler variable names. For the first one, roadwayExposure, would be perfectly fine. Remember you are the one who as to type it over and over again.
+
+The first table gives the coded, binned labels for Major Roadway Highway Exposure. The value of 1 is the lowest exposure. The value of 6 is the highest exposure.
+
+```{r unidisplay, echo=FALSE}
 kable(freqMajorRoadwayHighwayExposure, caption = "Major Roadway Highway Exposure Univariate Table")
+```
+
+pdh: and a bit of a look at the data is in order each time you produce something new.
+It looks like almost all of the patients fall into the category of the highest roadway pollution exposure bin.
+
+```{r}
+## leave off the last row which is the total
+## not
+ggplot(freqMajorRoadwayHighwayExposure[-7,], 
+       aes(x = MajorRoadwayHighwayExposure, y = frequency)) + 
+  geom_bar(stat = "identity") +
+  xlab("Major Roadway Highway Exposure") +
+  ylab("Bin Count") +
+  ggtitle("Distribution of Patients by Roadway Exposure")
+  
+  
+```
+
+
+```{r unidisplay, echo=FALSE}
 kable(freqMaxDailyPM2.5Exposure_qcut, caption = "Max Daily PM2.5 Exposure Univariate Table")
+```
+
+```{r unidisplay, echo=FALSE}
 kable(freqTotalEDInpatientVisits, caption = "Total ED/Inpatient Visits Univariate Table")
 ```
 
@@ -68,7 +110,7 @@ In order to verify the P(XYZ) table, we also have to get the Bivariate Counts of
 
 We will start off with the Total ED/Inpatient Visits vs. Max Daily PM2.5 Exposures Table. 
 
-```{r EDVisits-PM2.5}
+```{r EDVisits-PM2.5, message = FALSE}
 PM2.5data <- POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
                      body ='{
                      "feature_a": {
@@ -151,11 +193,14 @@ for(i in 1:5){
   PM2.5.df <- rbind(PM2.5.df, t)
 }
 PM2.5.df <- PM2.5.df[c(5,6,1,2,3)]
+PM2.5.df
 ```
+
+pdh: before proceeding, I suggest that you make this into a two-by-two table, calculate the marginal totals manually and compare them to the univariate results obtained above. This will tell us is you are getting the correct results and what is missing.
 
 Next, we will pull the Total ED/Inpatient Visits vs. Major Roadway Highway Exposures data. 
 
-``` {r EDVisits-MajRoadway}
+```{r EDVisits-MajRoadway}
 MajRoadwaydata <- POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
                   body ='{
                   "feature_a": {
@@ -327,7 +372,7 @@ MajPM2.5.df <- MajPM2.5.df[c(5,6,1,2,3)]
 
 Finished Tables:
 
-``` {r bidisplay, echo=FALSE}
+```{r bidisplay, echo=FALSE}
 kable(MajRoadway.df, caption = "Total ED/Inpatient Visits vs. Major Roadway Highway Exposure Bivariate Table")
 kable(PM2.5.df, caption = "Total ED/Inpatient Visits vs. Max Daily PM2.5 Exposure Bivariate Table")
 kable(MajPM2.5.df, caption = "Major Roadway Highway Exposure vs. Max Daily PM2.5 Exposure Bivariate Table")
@@ -337,7 +382,7 @@ kable(MajPM2.5.df, caption = "Major Roadway Highway Exposure vs. Max Daily PM2.5
 
 Finally, we will create the P(XYZ) table. In order to do so, we will be narrowing the cohort of each of our calls to the API to one bin of the Total ED/Inpatient Visits feature. Thus, we first have to create each of the cohorts that we will be using. 
 
-``` {r cohortcreation}
+```{r cohortcreation}
 cohort <- c()
 urls <- "https://icees.renci.org/1.0.0/patient/2010/cohort"
 for(i in 0:9){
@@ -353,7 +398,7 @@ cohort <- strsplit(cohort, "COHORT:")
 
 Next, we can use the cohorts we just created to pull the bivariate distribution between Major Roadway Highway Exposure and Max Daily PM2.5 Exposure. We will use the parameters of: varying cohorts, year 2010, version 1.0.0 of ICEES data, and patient level data. We will also be using the Hypothesis Driven NxN Feature Association Functionality.
 
-``` {r P(XYZ)table}
+```{r P(XYZ)table}
 total <- data.frame("TotalEDInpatientVisits" = c(), "MajorRoadwayHighwayExposure" = c(), "MaxDailyPM2.5Exposure_qcut" = c(), "frequency" = c(), "column_percentage" = c(), "row_percentage" = c(), "total_percentage" = c())
 for(i in 1:10){
   urls <- paste('https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A',cohort[[i]][2],'/feature_association2', sep = "")
@@ -483,7 +528,7 @@ Since ICEES doesn't output data if the value is less than 10, some data will be 
 
 First, we will focus on Total ED/Inpatient Visits. 
 
-``` {r totalEDVisits}
+```{r totalEDVisits}
 totalEDVisits <- data.frame(TotalEDInpatientVisits = c(0,1,2,3,4,5,6,7,8,9), UnivariateFreq = c(freqTotalEDInpatientVisits$frequency[1:10]))
 MajRoadwayFreq <- data.frame(MajRoadwayFreq = c())
 PM2.5Freq <- data.frame(PM2.5Freq = c())
@@ -503,11 +548,12 @@ for(i in 0:9){
   TriFreq <- rbind(TriFreq, r)
 }
 totalEDVisits <- cbind(totalEDVisits, MajRoadwayFreq, PM2.5Freq, TriFreq)
+totalEDVisits
 ```
 
 Next, we will look into Major Roadway Highway Exposures. 
 
-``` {r totalMajRoadway}
+```{r totalMajRoadway}
 totalMajRoadway <- data.frame(MajorRoadwayHighwayExposure = c(1,2,3,4,5,6), UnivariateFreq = c(freqMajorRoadwayHighwayExposure$frequency[1:6]))
 EDVisitsFreq <- data.frame(EDVisitsFreq = c())
 PM2.5Freq <- data.frame(PM2.5Freq = c())
@@ -527,11 +573,12 @@ for(i in 1:6){
   TriFreq <- rbind(TriFreq, r)
 }
 totalMajRoadway <- cbind(totalMajRoadway, EDVisitsFreq, PM2.5Freq, TriFreq)
+totalMajRoadway
 ```
 
 Finally, we will compute Max Daily PM2.5 Exposures. 
 
-``` {r totalPM2.5}
+```{r totalPM2.5}
 totalPM2.5 <- data.frame(MaxDailyPM2.5Exposure_qcut = c(1,2,3,4,5), UnivariateFreq = c(freqMaxDailyPM2.5Exposure_qcut$frequency[1:5]))
 EDVisitsFreq <- data.frame(EDVisitsFreq = c())
 MajRoadwayFreq <- data.frame(MajRoadwayFreq = c())
@@ -551,12 +598,12 @@ for(i in 1:5){
   TriFreq <- rbind(TriFreq, r)
 }
 totalPM2.5 <- cbind(totalPM2.5, EDVisitsFreq, MajRoadwayFreq, TriFreq)
-
+totalPM2.5
 ```
 
 Finished Count Comparison Tables:
 
-``` {r comparisondisplay, echo=FALSE}
+```{r comparisondisplay, echo=FALSE}
 kable(totalEDVisits, caption = "Univariate, Bivariate, and Trivariate Count Comparison - Total ED/Inpatient Visits")
 kable(totalMajRoadway, caption = "Univariate, Bivariate, and Trivariate Count Comparison - Major Roadway Highway Exposures")
 kable(totalPM2.5, caption = "Univariate, Bivariate, and Trivariate Count Comparison - Max Daily PM2.5 Exposures")
