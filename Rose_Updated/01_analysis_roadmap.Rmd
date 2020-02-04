@@ -1,0 +1,27 @@
+---
+title: "Analysis Roadmap"
+author: "Haaland"
+date: "2/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this folder, we are reviewing, editing, and organizing the code originally written by Rose Wang for her student project. As part of this work, it is important to lay out what was done in an logical order that can be easily followed and reproduced. The goal is to abstract out the important parts of this work into part of a test case. A simplified view this part of the work is as follows:
+
+1. Extract the data via the OpenAPI and construct a three way table. Identify any potential anomalies in the data. Complete a standard statistical analysis (TBD).
+
+2. From behind the firewall, extract the binned data corresponding to Step 1. Complete the same statistical analysis.
+
+3. From behind the firewall, extract the raw data corresponding to Step 1. Manually bin the data in order to do the standardized analysis.
+
+4. Extract an set of "true" values from the statistical analysis of Step 3. Extract corresponding values from the analyses of Steps 2 and 3. Compare and contrast the results for "correctness".
+
+5. Construct a test case that can be implemented in a standardized testing harness that validates the three way table paradigm.
+
+6. Based on the results so far, propose an approach to identify potential failure points. Find one or more interesting failure points and implement test cases.
+
