@@ -1,24 +1,16 @@
 ---
-title: "Make Univariate Tables"
+title: "Make Bivariate Tables"
 author: "Perry Haaland"
-date: "02/04/2020"
+date: "02/05/2020"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-rm(list=ls())
-## pdh: Usually it is not advisable to hard code a directory in shared code
-#setwd("/Users/rosewang/Downloads/RCompSci")
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
 library(jsonlite)
 library(httr)
-#library(scatterplot3d)
-#library(lattice)
-#library(mefa)
-#library(glmnet)
-#library(knitr)
 ```
 
 ## Introduction
@@ -27,165 +19,50 @@ Eventually we are going to extract a three-way table and the three corresponding
 
 The univariate counts for each variable are the univariate marginal distribution across the bins. The two-way tables are the bivariate marginal distributions. The three-way table, which is the full multivariate distribution is constrained by its marginal distributions, so we can use those to check on the correctness of the OpenAPI results.
 
-
 We use the `json` format of the interface. The data set that we aer extracting from is
 
 * Cohort 22 (all patients),
 * 2010 data,
 * Version 1.0.0 of ICEES.
 
+In this file we extract the bivariate tables. The features that we are working with are as follows:
 
-## Extracting the univariate counts using the OpenAPI
+* Total ED/Inpatient Visits, 
+* Average Daily PM 2.5 Exposure, 
+* Major Roadway Highway Exposure.
 
-We first get the univariate counts for all features (variables) the ICEES database using the ICEES API. Note that we first specify the ICEES URL and then we use the `GET` functionality from the R package `httr`. Then we use functions from the package `jsonlite` to convert from JSON to R.
+We will extract the three bivariate combinations of the three features (Total ED/Inpatient Visits, Average Daily PM 2.5 Exposure, Major Roadway Highway Exposure) from the ICEES API. We will use the parameters of: Cohort 22 (all patients), year 2010, version 1.0.0 of ICEES data, and patient level data. We will also be using the Hypothesis Driven NxN Feature Association Functionality.
 
+## Revisiting the relevant univariate features
 
-```{r univariate, message=FALSE}
-## no need to see uninformative messages in the markdown document
-url <- "https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/features"
-## extract the data in json format
-uni.call <- httr::GET(url,
-          accept_json(),
-          content_type("application/json"),
-          encode = "json")
-## the next line of code extracts just the content as a character string
-uni.text <- httr::content(uni.call, "text")
-## convert the output to JSON format
-## note that this contains all of the variables in the dataset
-uni.list <- jsonlite::fromJSON(uni.text, flatten = TRUE)$`return value`
-```
+My current understanding of the OpenAPI, is that the request for bivariate tables has to be hard coded specific for each feature. It seems to me that there should be a way to automate this and get all bivariate tables, or at least to get bivariate tables by just giving the feature names. That task may be left to a graduate student when we get one.
 
-Note that the current data object, `uni.list`, has the univariate binned distribution for all of the features.
-
-```{r}
-names(uni.list)
-```
-
-The first component of the output are the frequencies and percentages in each bin.
-
-```{r}
-uni.list$feature_matrix[[1]]
-```
-
-The second component of the output contains the names of the features. We show the first five names here.
-
-```{r}
-cat("Number of Features = ", length(uni.list$feature.feature_name),"\n")
-uni.list$feature.feature_name[1:5]
-```
-
-The third component provides the bin identifications. This may be a range or a single value. The bin identifiers for the first variable `AgeStudyStart` are shown below. This feature has been reported in 6 bins, based on age ranges.
-
-```{r, message=FALSE}
-uni.list$feature.feature_qualifiers[[1]]
-```
-
-The bins may also correspond to single values as for the second feature, `Sex`.
-
-
-```{r, message=FALSE}
-uni.list$feature.feature_qualifiers[[2]]
-```
-
-
-We will now extract the data from JSON form to a data frame by parsing the values into one big data frame. 
+In order to do the hard coding, we need to know the bins for each feature. Here is that information. Note that there are 30 rows in the first table. After the first 10 rows, all of the counts are 10 or less. It seems like the higher ones should be binned before proceeding to the two-way tables.
 
 
 ```{r}
-## the following function combines the results for one feature
-make_df <- function(i) {
-  data.frame(feature=uni.list$feature.feature_name[i],
-             uni.list$feature.feature_qualifiers[i],
-              uni.list$feature_matrix[[i]])
-}
-## this code loops through the entire list and returns a single data frame
-## pdh: should remember how to do this more elegantly!
-for(i in 1:length(uni.list[[1]])) {
-  if(i == 1) {
-    uni_df <- make_df(i)
-  } else {
-    uni_df <- rbind(uni_df,make_df(i))
-  }
-}
+univariate_df %>%
+  filter(feature == "TotalEDInpatientVisits")
 ```
 
-This data frame is called `uni_df`. Here are the results for the first two features.
 
 ```{r}
-uni_df[1:8,]
+univariate_df %>%
+  filter(feature == "MaxDailyPM2.5Exposure_qcut")
 ```
 
-
-## Stop Here !!
-
-```{r unidataframe}
-
-## usually it is recommended not to hard code positions
-## if it seems like you must, you should at least show the output so the user
-## can verify that it is correct
-featureNumber <- c(17, 29, 30)
-featureNames <- uni.json[["return value"]][["feature.feature_name"]]
-featureNames <- as.vector(c(featureNames[17], featureNames[29], featureNames[30]))
-## pdh
-cat("Feature Names\n")
-featureNames
-##
-for(i in 1:3){
-  assign(paste("freq",uni.json[["return value"]][["feature.feature_name"]][[featureNumber[i]]],sep = ""), data.frame(c(uni.json[["return value"]][["feature.feature_qualifiers"]][[featureNumber[i]]][["value"]], "Total"), frequency = c(uni.json[["return value"]][["feature_matrix"]][[featureNumber[i]]][["frequency"]], sum(uni.json[["return value"]][["feature_matrix"]][[featureNumber[i]]][["frequency"]]))))
-  if(i==2){
-    colnames(freqMajorRoadwayHighwayExposure)[1] <- paste("",uni.json[["return value"]][["feature.feature_name"]][[featureNumber[i]]],sep = "")
-  } else if(i==1){
-    colnames(freqMaxDailyPM2.5Exposure_qcut)[1] <- paste("",uni.json[["return value"]][["feature.feature_name"]][[featureNumber[i]]],sep = "")
-  } else {
-    colnames(freqTotalEDInpatientVisits)[1] <- paste("",uni.json[["return value"]][["feature.feature_name"]][[featureNumber[i]]],sep = "")
-  }
-}
-```
-
-Finished Tables
-
-pdh: I suggest separating the tables into three different outputs and discussing each one briefly. I also suggest that you use much simpler variable names. For the first one, roadwayExposure, would be perfectly fine. Remember you are the one who as to type it over and over again.
-
-The first table gives the coded, binned labels for Major Roadway Highway Exposure. The value of 1 is the lowest exposure. The value of 6 is the highest exposure.
-
-```{r unidisplay, echo=FALSE}
-kable(freqMajorRoadwayHighwayExposure, caption = "Major Roadway Highway Exposure Univariate Table")
-```
-
-pdh: and a bit of a look at the data is in order each time you produce something new.
-It looks like almost all of the patients fall into the category of the highest roadway pollution exposure bin.
 
 ```{r}
-## leave off the last row which is the total
-## not
-ggplot(freqMajorRoadwayHighwayExposure[-7,], 
-       aes(x = MajorRoadwayHighwayExposure, y = frequency)) + 
-  geom_bar(stat = "identity") +
-  xlab("Major Roadway Highway Exposure") +
-  ylab("Bin Count") +
-  ggtitle("Distribution of Patients by Roadway Exposure")
-  
-  
+univariate_df %>%
+  filter(feature == "MajorRoadwayHighwayExposure")
 ```
 
+## Setting up the calls to the OpenAPI
 
-```{r unidisplay, echo=FALSE}
-kable(freqMaxDailyPM2.5Exposure_qcut, caption = "Max Daily PM2.5 Exposure Univariate Table")
-```
+In order to make the code clearer, and perhaps pave the way for later automation, we create some variables that will be used in the OpenAPI calls. The first call will be `TotalEDInpatientVisits` versus `MaxDailyPM2.5Exposure_qcut`.
 
-```{r unidisplay, echo=FALSE}
-kable(freqTotalEDInpatientVisits, caption = "Total ED/Inpatient Visits Univariate Table")
-```
-
-## Bivariate Counts
-
-In order to verify the P(XYZ) table, we also have to get the Bivariate Counts of the three bivariate combinations of the three variables (Total ED/Inpatient Visits, Average Daily PM 2.5 Exposure, Major Roadway Highway Exposure) from the ICEES API. We will use the parameters of: Cohort 22 (all patients), year 2010, version 1.0.0 of ICEES data, and patient level data. We will also be using the Hypothesis Driven NxN Feature Association Functionality.
-
-We will start off with the Total ED/Inpatient Visits vs. Max Daily PM2.5 Exposures Table. 
-
-```{r EDVisits-PM2.5, message = FALSE}
-PM2.5data <- POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
-                     body ='{
+```{r}
+body_table1 ='{
                      "feature_a": {
                      "TotalEDInpatientVisits": [
                      {
@@ -245,15 +122,170 @@ PM2.5data <- POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22
                      }
                      ]
                      }
-                     }',
+                     }'
+```
+
+The second call will be `TotalEDInpatientVisits` versus `MajorRoadwayHighwayExposure`.
+
+```{r}
+body_table2 ='{
+                  "feature_a": {
+                  "TotalEDInpatientVisits": [
+                     {
+                  "operator": "=",
+                  "value": 0
+                  }, {
+                  "operator": "=",
+                  "value": 1
+                  }, {
+                  "operator": "=",
+                  "value": 2
+                  },{
+                  "operator": "=",
+                  "value": 3
+                  },{
+                  "operator": "=",
+                  "value": 4
+                  }, {
+                  "operator": "=",
+                  "value": 5
+                  }, {
+                  "operator": "=",
+                  "value": 6
+                  },
+                  {
+                  "operator": "=",
+                  "value": 7
+                  }, {
+                  "operator": "=",
+                  "value": 8
+                  }, {
+                  "operator": "=",
+                  "value": 9
+                  }
+                  ]
+                  },
+                  "feature_b": {
+                  "MajorRoadwayHighwayExposure": [
+                  {
+                  "operator": "=",
+                  "value": 1
+                  },
+                  {
+                  "operator": "=",
+                  "value": 2
+                  },
+                  {
+                  "operator": "=",
+                  "value": 3
+                  },
+                  {
+                  "operator": "=",
+                  "value": 4
+                  },
+                  {
+                  "operator": "=",
+                  "value": 5
+                  },
+                  {
+                  "operator": "=",
+                  "value": 6
+                  }
+                  ]
+                  }
+                  }'
+```
+
+The third call will be for `MajorRoadwayHighwayExposure` vs `MaxDailyPM2.5Exposure_qcut`
+
+```{r}
+body_table3 ='{
+                      "feature_a": {
+                      "MajorRoadwayHighwayExposure": [
+                      {
+                      "operator": "=",
+                      "value": 1
+                      },
+                      {
+                      "operator": "=",
+                      "value": 2
+                      },
+                      {
+                      "operator": "=",
+                      "value": 3
+                      },
+                      {
+                      "operator": "=",
+                      "value": 4
+                      },
+                      {
+                      "operator": "=",
+                      "value": 5
+                      },
+                      {
+                      "operator": "=",
+                      "value": 6
+                      }
+                      ]
+                      },
+                      "feature_b": {
+                      "MaxDailyPM2.5Exposure_qcut": [
+                      {
+                      "operator": "=",
+                      "value": 1
+                      },
+                      {
+                      "operator": "=",
+                      "value": 2
+                      },
+                      {
+                      "operator": "=",
+                      "value": 3
+                      },
+                      {
+                      "operator": "=",
+                      "value": 4
+                      },
+                      {
+                      "operator": "=",
+                      "value": 5
+                      }
+                      ]
+                      }
+                      }'
+```
+
+## Extracting the tables
+
+
+```{r EDVisits-PM2.5, message = FALSE}
+table1_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
+                     body = body_table1,
           accept_json(),
           content_type("application/json"),
           encode = "json")
-PM2.5datatext <- content(PM2.5data, "text")
-#
-PM2.5data_json <- fromJSON(PM2.5datatext, flatten = TRUE)
-PM2.5data_json$"terms and conditions" <- NULL
-PM2.5data_json$"version" <- NULL
+table1_text <- httr::content(table1_call, "text")
+table1_list <- jsonlite::fromJSON(table1_text, flatten = TRUE)$`return value`
+## I'm hard coding this for the moment, but I don't like it one bit
+var1_values <- univariate_df %>%
+  filter(feature == "TotalEDInpatientVisits") %>%
+  select(value)
+
+table1_df <- for(i in 1:10) {
+  df <-table1_list$feature_matrix[[1]]
+  if(i == 1) {
+    
+  }
+}
+
+```
+
+
+
+ ## STOP HERE
+ 
+```{r}
+
 features.df <- data.frame("EDvisits" = c(0,1,2,3,4,5,6,7,8,9))
 PM2.5.df <- data.frame("frequency" = c(), "column_percentage" = c(), "row_percentage" = c(), "total_percentage" = c(),"EDvisits" = c(), "MaxDailyPM2.5Exposure_qcut" = c())
 for(i in 1:5){

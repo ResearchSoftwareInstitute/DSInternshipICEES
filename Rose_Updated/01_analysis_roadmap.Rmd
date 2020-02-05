@@ -32,10 +32,10 @@ The test case we are going to work on first is for the three variables:
 * Major Roadway Highway Exposure.
 ## Extracting the data through the OpenAPI
 
-**File** = `02_make_univariate.Rmd`
+**File** = `02_make_univariate_tables.Rmd`
 
 This file creates a data frame that has the binned univariate distributions for each feature. It is adapted from Rose's file `P(XYZ) Table.Rmd`.
 
-It creates the data frame `uni_df`.
+It creates the data frame `univariate_df`.
 
 

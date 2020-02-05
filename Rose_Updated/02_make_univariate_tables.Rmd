@@ -1,0 +1,121 @@
+---
+title: "Make Univariate Tables"
+author: "Perry Haaland"
+date: "02/04/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(jsonlite)
+library(httr)
+```
+
+## Introduction
+
+Eventually we are going to extract a three-way table and the three corresponding two-way tables using the OpenAPI, and the univariate counts for each variable separately. Because we are using the OpenAPI, we are extracting pre-binned data. The extracted values are also subject the privacy constraints of the system in terms of reporting low frequency cell counts.
+
+The univariate counts for each variable are the univariate marginal distribution across the bins. The two-way tables are the bivariate marginal distributions. The three-way table, which is the full multivariate distribution is constrained by its marginal distributions, so we can use those to check on the correctness of the OpenAPI results.
+
+
+We use the `json` format of the interface. The data set that we aer extracting from is
+
+* Cohort 22 (all patients),
+* 2010 data,
+* Version 1.0.0 of ICEES.
+
+In this file, we extract the univariate tables for each feature. The output of this file is the data frame `univariate_df`.
+
+## Extracting the univariate counts using the OpenAPI
+
+We first get the univariate counts for all features (variables) the ICEES database using the ICEES API. Note that we first specify the ICEES URL and then we use the `GET` functionality from the R package `httr`. Then we use functions from the package `jsonlite` to convert from JSON to R.
+
+
+```{r univariate, message=FALSE}
+## no need to see uninformative messages in the markdown document
+url <- "https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/features"
+## extract the data in json format
+univariate.call <- httr::GET(url,
+          accept_json(),
+          content_type("application/json"),
+          encode = "json")
+## the next line of code extracts just the content as a character string
+univariate.text <- httr::content(univariate.call, "text")
+## convert the output to JSON format
+## note that this contains all of the variables in the dataset
+univariate.list <- jsonlite::fromJSON(univariate.text, flatten = TRUE)$`return value`
+```
+
+Note that the current data object, `univariate.list`, has the univariate binned distribution for all of the features.
+
+```{r}
+names(univariate.list)
+```
+
+The first component of the output are the frequencies and percentages in each bin.
+
+```{r}
+univariate.list$feature_matrix[[1]]
+```
+
+The second component of the output contains the names of the features. We show the first five names here.
+
+```{r}
+cat("Number of Features = ", length(univariate.list$feature.feature_name),"\n")
+univariate.list$feature.feature_name[1:5]
+```
+
+The third component provides the bin identifications. This may be a range or a single value. The bin identifiers for the first variable `AgeStudyStart` are shown below. This feature has been reported in 6 bins, based on age ranges.
+
+```{r, message=FALSE}
+univariate.list$feature.feature_qualifiers[[1]]
+```
+
+The bins may also correspond to single values as for the second feature, `Sex`.
+
+
+```{r, message=FALSE}
+univariate.list$feature.feature_qualifiers[[2]]
+```
+
+
+We will now extract the data from JSON form to a data frame by parsing the values into one big data frame. 
+
+
+```{r}
+## the following function combines the results for one feature
+make_df <- function(i) {
+  data.frame(feature=univariate.list$feature.feature_name[i],
+             univariate.list$feature.feature_qualifiers[i],
+              univariate.list$feature_matrix[[i]])
+}
+## this code loops through the entire list and returns a single data frame
+## pdh: should remember how to do this more elegantly!
+for(i in 1:length(univariate.list[[1]])) {
+  if(i == 1) {
+    univariate_df <- make_df(i)
+  } else {
+    univariate_df <- rbind(univariate_df,make_df(i))
+  }
+}
+```
+
+This data frame is called `univariate_df`. Here are the results for the first two features.
+
+```{r}
+univariate_df[1:8,]
+```
+
+The size of the data frame is 
+
+```{r}
+dim(univariate_df)
+```
+
+The number of features is
+
+```{r}
+length(unique(univariate_df$feature))
+```
