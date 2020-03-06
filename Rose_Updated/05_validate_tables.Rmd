@@ -1,0 +1,68 @@
+---
+title: "Validation of Tables"
+author: "Haaland"
+date: "3/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+## Load the tables
+
+In files 2-4, we created and saved the univariate, bivariate and trivariate tablesfor the variables:
+
+* `EDVisits` = Total ED/Inpatient Visits, 
+* `MaxDailyExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `RoadwayExposure` = Major Roadway Highway Exposure.
+
+The three pairwise combinations of binary tables are labeled as follows:
+
+* `bivar_EDvsME_df`: `EDVisits` versus `MaxDailyExposure`
+* `bivar_EDvsRE_df`: `EDVisits` versus `RoadwayExposure`
+* `bivar_REvsME_df`: `RoadwayExposure` versus `MaxDailyExposure`
+
+We start by loading the data.
+
+```{r}
+load("RData/uni_df.RData")
+load("RData/bivar_EDvsME_df.RData")
+load("RData/bivar_EDvsRE_df.RData")
+load("RData/bivar_REvsME_df.RData")
+load("RData/tri_df.RData")
+```
+
+
+
+## Brief examination of bivariate tables
+
+The first result that surprises me is that the bivariate table returns fequency values for cells which have counts below 10. I thought that 10 was the minimum number required for reporting.
+
+```{r}
+bivar_EDvsME_df %>%
+  arrange(Frequency)
+```
+
+Compare the total frequencies reported in the univariate table versus the different bivariate tables
+
+```{r}
+uni_df %>% 
+  group_by(Feature) %>%
+  summarize(total_counts = sum(Frequency))
+
+```
+
+```{r}
+sum(bivar_EDvsME_df$Frequency)
+```
+```{r}
+uni_df %>% 
+  filter(str_detect(Feature, 'EDVisits')) %>%
+  filter(as.numeric(Value) >= 10) %>%
+  summarize(total_counts = sum(Frequency))
+```
+
+We can see that the 57 subjects with 10 or more visits are correctly left out of the bivariate tables based on the total counts.

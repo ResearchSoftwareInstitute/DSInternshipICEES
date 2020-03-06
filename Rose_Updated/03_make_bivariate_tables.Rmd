@@ -1,7 +1,7 @@
 ---
 title: "Make Bivariate Tables"
 author: "Perry Haaland"
-date: "02/05/2020"
+date: "03/05/2020"
 output: html_document
 ---
 
@@ -42,20 +42,21 @@ In order to do the hard coding, we need to know the bins for each feature. Here 
 
 
 ```{r}
-## univariate_df was created in the document 02_make_univariate_tables.Rmd
-univariate_df %>%
+## uni_df was created in the document 02_make_univariate_tables.Rmd
+load("RData/uni_df.RData")
+uni_df %>%
   filter(feature == "TotalEDInpatientVisits")
 ```
 
 
 ```{r}
-univariate_df %>%
+uni_df %>%
   filter(feature == "MaxDailyPM2.5Exposure_qcut")
 ```
 
 
 ```{r}
-univariate_df %>%
+uni_df %>%
   filter(feature == "MajorRoadwayHighwayExposure")
 ```
 
@@ -71,7 +72,7 @@ In order to make the code clearer, and perhaps pave the way for later automation
 I picked a generic name for the table, for the time being. There probably should be more internal error checking.
 
 ```{r, message=FALSE}
-body_table1 ='{
+body_bivar1 ='{
                      "feature_a": {
                      "TotalEDInpatientVisits": [
                      {
@@ -132,28 +133,29 @@ body_table1 ='{
                      ]
                      }
                      }'
-## table1 is what Rose called PM2.5data
-table1_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
-                     body = body_table1,
+## bivar1 is what Rose called PM2.5data
+bivar1_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
+                     body = body_bivar1,
           accept_json(),
           content_type("application/json"),
           encode = "json")
-table1_text <- httr::content(table1_call, "text")
-table1_list <- jsonlite::fromJSON(table1_text, flatten = TRUE)$`return value`
+bivar1_text <- httr::content(bivar1_call, "text")
+bivar1_list <- jsonlite::fromJSON(bivar1_text, flatten = TRUE)$`return value`
 ## have to hard code these values
 EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 MaxExposure = c(1, 2, 3, 4, 5)
 for(i in 1:5){
   temp_df <- data.frame(EDVisits = EDVisits, 
                         MaxDailyExposure = MaxExposure[i],
-                        Frequency = table1_list$feature_matrix[[i]]$frequency)
+                        Frequency = bivar1_list$feature_matrix[[i]]$frequency)
   if(i == 1) {
-    table1_df = temp_df
+    bivar1_df = temp_df
   } else {
-    table1_df <- rbind(table1_df,temp_df)
+    bivar1_df <- rbind(bivar1_df,temp_df)
   }
 }
-table1_df
+bivar_EDvsME_df = bivar1_df
+bivar_EDvsME_df
 
 ```
 
@@ -162,7 +164,7 @@ table1_df
 The second call will be `TotalEDInpatientVisits` versus `MajorRoadwayHighwayExposure`.
 
 ```{r, message=FALSE}
-body_table2 ='{
+body_bivar2 ='{
                   "feature_a": {
                   "TotalEDInpatientVisits": [
                      {
@@ -228,35 +230,36 @@ body_table2 ='{
                   ]
                   }
                   }'
-table2_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
-                     body = body_table2,
+bivar2_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
+                     body = body_bivar2,
           accept_json(),
           content_type("application/json"),
           encode = "json")
-table2_text <- httr::content(table2_call, "text")
-table2_list <- jsonlite::fromJSON(table2_text, flatten = TRUE)$`return value`
+bivar2_text <- httr::content(bivar2_call, "text")
+bivar2_list <- jsonlite::fromJSON(bivar2_text, flatten = TRUE)$`return value`
 ## have to hard code these values
 EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 MaxRoadway = c(1, 2, 3, 4, 5, 6)
 for(i in 1:6){
   temp_df <- data.frame(EDVisits = EDVisits, 
                         RoadwayExposure = MaxRoadway[i],
-                        Frequency = table2_list$feature_matrix[[i]]$frequency)
+                        Frequency = bivar2_list$feature_matrix[[i]]$frequency)
   if(i == 1) {
-    table2_df = temp_df
+    bivar2_df = temp_df
   } else {
-    table2_df <- rbind(table2_df,temp_df)
+    bivar2_df <- rbind(bivar2_df,temp_df)
   }
 }
-table2_df
+bivar_EDvsRE_df = bivar2_df
+bivar_EDvsRE_df
 ```
 
 ### Table 3. Major Roadway Highway Exposure versus Maximum Daily PM2.5 Exposure
 
 The third call will be for `MajorRoadwayHighwayExposure` vs `MaxDailyPM2.5Exposure_qcut`
 
-```{r}
-body_table3 ='{
+```{r, message=FALSE}
+body_bivar3 ='{
                       "feature_a": {
                       "MajorRoadwayHighwayExposure": [
                       {
@@ -310,58 +313,39 @@ body_table3 ='{
                       ]
                       }
                       }'
-table3_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
-                     body = body_table3,
+bivar3_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
+                     body = body_bivar3,
           accept_json(),
           content_type("application/json"),
           encode = "json")
-table3_text <- httr::content(table3_call, "text")
-table3_list <- jsonlite::fromJSON(table3_text, flatten = TRUE)$`return value`
+bivar3_text <- httr::content(bivar3_call, "text")
+bivar3_list <- jsonlite::fromJSON(bivar3_text, flatten = TRUE)$`return value`
 ## have to hard code these values
 MaxRoadway = c(1, 2, 3, 4, 5, 6)
 MaxExposure = c(1, 2, 3, 4, 5)
 for(i in 1:5){
   temp_df <- data.frame(RoadwayExposure = MaxRoadway, 
                         MaxExposure = MaxExposure[i],
-                        Frequency = table3_list$feature_matrix[[i]]$frequency)
+                        Frequency = bivar3_list$feature_matrix[[i]]$frequency)
   if(i == 1) {
-    table3_df = temp_df
+    bivar3_df = temp_df
   } else {
-    table3_df <- rbind(table3_df,temp_df)
+    bivar3_df <- rbind(bivar3_df,temp_df)
   }
 }
-table3_df
+bivar_REvsME_df = bivar3_df
+bivar_REvsME_df
 ```
 
+## Save the resulting data frames
 
-## Brief examination of bivariate tables
-
-The first result that surprises me is that the bivariate table returns fequency values for cells which have counts below 10. I thought that 10 was the minimum number required for reporting.
 
 ```{r}
-table1_df %>%
-  arrange(Frequency)
-```
+save(bivar_REvsME_df, file = "RData/bivar_REvsME_df.RData")
+save(bivar_EDvsRE_df, file = "RData/bivar_EDvsRE_df.RData")
+save(bivar_EDvsME_df, file = "RData/bivar_EDvsME_df.RData")
 
-Compare the total frequencies reported in the univariate table versus the different bivariate tables
-
-```{r}
-univariate_df %>% 
-  filter(str_detect(feature, 'MaxDailyPM2.5Exposure_qcut|MajorRoadwayHighwayExposure|TotalEDInpatientVisits')) %>%
-  group_by(feature) %>%
-  summarize(total_counts = sum(frequency))
 
 ```
 
-```{r}
-sum(table1_df$Frequency)
-```
-```{r}
-univariate_df %>% 
-  filter(str_detect(feature, 'TotalEDInpatientVisits')) %>%
-  filter(as.numeric(value) >= 10) %>%
-  summarize(total_counts = sum(frequency))
-```
-
-We can see that the 57 subjects with 10 or more visits are correctly left out of the bivariate tables based on the total counts.
 

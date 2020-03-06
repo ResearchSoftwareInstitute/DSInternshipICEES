@@ -1,7 +1,7 @@
 ---
 title: "Analysis Roadmap"
 author: "Haaland"
-date: "2/3/2020"
+date: "03/05/2020"
 output: html_document
 ---
 
@@ -27,15 +27,28 @@ In this folder, we are reviewing, editing, and organizing the code originally wr
 
 The test case we are going to work on first is for the three variables:
 
-* Total ED/Inpatient Visits, 
-* Average Daily PM 2.5 Exposure, 
-* Major Roadway Highway Exposure.
+* `EDVisits` = Total ED/Inpatient Visits, 
+* `MaxDailyExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `RoadwayExposure` = Major Roadway Highway Exposure.
+
 ## Extracting the data through the OpenAPI
+
+We modified the code provided by Rose in `P(XYZ) Table.Rmd` to create data frames that contain the univariate, bivariate, and trivariate tables.
 
 **File** = `02_make_univariate_tables.Rmd`
 
-This file creates a data frame that has the binned univariate distributions for each feature. It is adapted from Rose's file `P(XYZ) Table.Rmd`.
+It creates the data frames `uni_all_df`, which contains all univariate results, and `uni_df`, which contains just the three features of interest.
 
-It creates the data frame `univariate_df`.
+**File** = `03_make_bivariate_tables.Rmd`
 
+The following data frames are created.
 
+* `bivar_EDvsME_df`: `EDVisits` versus `MaxDailyExposure`
+* `bivar_EDvsRE_df`: `EDVisits` versus `RoadwayExposure`
+* `bivar_REvsME_df`: `RoadwayExposure` versus `MaxDailyExposure`
+
+**File**  `04_make_trivariate_table.RMD`
+
+It creates the data frame `tri_df`
+
+## Validation of the tables

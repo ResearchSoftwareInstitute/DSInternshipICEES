@@ -1,7 +1,7 @@
 ---
 title: "Make Univariate Tables"
 author: "Perry Haaland"
-date: "02/04/2020"
+date: "03/05/2020"
 output: html_document
 ---
 
@@ -25,7 +25,7 @@ We use the `json` format of the interface. The data set that we aer extracting f
 * 2010 data,
 * Version 1.0.0 of ICEES.
 
-In this file, we extract the univariate tables for each feature. The output of this file is the data frame `univariate_df`.
+In this file, we extract the univariate tables for each feature. The output of this file is the data frame `uni_all_df`.
 
 ## Extracting the univariate counts using the OpenAPI
 
@@ -94,27 +94,59 @@ make_df <- function(i) {
 ## pdh: should remember how to do this more elegantly!
 for(i in 1:length(univariate.list[[1]])) {
   if(i == 1) {
-    univariate_df <- make_df(i)
+    uni_all_df <- make_df(i)
   } else {
-    univariate_df <- rbind(univariate_df,make_df(i))
+    uni_all_df <- rbind(uni_all_df,make_df(i))
   }
 }
 ```
 
-This data frame is called `univariate_df`. Here are the results for the first two features.
+This data frame is called `uni_all_df`. Here are the results for the first two features.
 
 ```{r}
-univariate_df[1:8,]
+uni_all_df[1:8,]
 ```
 
 The size of the data frame is 
 
 ```{r}
-dim(univariate_df)
+dim(uni_all_df)
 ```
 
 The number of features is
 
 ```{r}
-length(unique(univariate_df$feature))
+length(unique(uni_all_df$feature))
 ```
+
+## Make a smaller table with just the three relevant variables
+
+We select the three features of interest and rename the variables with simpler names for use later.
+
+* `EDVisits` = Total ED/Inpatient Visits, 
+* `MaxDailyExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `RoadwayExposure` = Major Roadway Highway Exposure.
+
+```{r}
+uni_df <- uni_all_df %>% 
+  filter(str_detect(feature, 'MaxDailyPM2.5Exposure_qcut|MajorRoadwayHighwayExposure|TotalEDInpatientVisits')) %>%
+  select(Feature = feature, Value = value, Frequency = frequency) %>%
+  mutate(Feature = recode(Feature, TotalEDInpatientVisits = "EDVisits",
+                          MajorRoadwayHighwayExposure = "RoadwayExposure",
+                          MaxDailyPM2.5Exposure_qcut = "MaxDailyExposure"))
+uni_df
+  
+```
+
+
+
+## Save the resulting data frames
+
+```{r}
+save(uni_all_df, file = "RData/uni_all_df.RData")
+save(uni_df, file = "RData/uni_df.RData")
+```
+
+
+```
+
