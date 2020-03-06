@@ -28,9 +28,9 @@ We use the `json` format of the interface. The data set that we aer extracting f
 
 In this file we extract the bivariate tables. The features that we are working with are as follows:
 
-* Total ED/Inpatient Visits, 
-* Average Daily PM 2.5 Exposure, 
-* Major Roadway Highway Exposure.
+* `EDVisits` = Total ED/Inpatient Visits, 
+* `MaxPMExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `RoadwayExposure` = Major Roadway Highway Exposure.
 
 We will extract the three bivariate combinations of the three features (Total ED/Inpatient Visits, Average Daily PM 2.5 Exposure, Major Roadway Highway Exposure) from the ICEES API. We will use the parameters of: Cohort 22 (all patients), year 2010, version 1.0.0 of ICEES data, and patient level data. We will also be using the Hypothesis Driven NxN Feature Association Functionality.
 
@@ -45,19 +45,19 @@ In order to do the hard coding, we need to know the bins for each feature. Here 
 ## uni_df was created in the document 02_make_univariate_tables.Rmd
 load("RData/uni_df.RData")
 uni_df %>%
-  filter(feature == "TotalEDInpatientVisits")
+  filter(Feature == "EDVisits")
 ```
 
 
 ```{r}
 uni_df %>%
-  filter(feature == "MaxDailyPM2.5Exposure_qcut")
+  filter(Feature == "MaxPMExposure")
 ```
 
 
 ```{r}
 uni_df %>%
-  filter(feature == "MajorRoadwayHighwayExposure")
+  filter(Feature == "RoadwayExposure")
 ```
 
 ## Creating the bivariate tables
@@ -146,7 +146,7 @@ EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 MaxExposure = c(1, 2, 3, 4, 5)
 for(i in 1:5){
   temp_df <- data.frame(EDVisits = EDVisits, 
-                        MaxDailyExposure = MaxExposure[i],
+                        MaxPMExposure = MaxExposure[i],
                         Frequency = bivar1_list$feature_matrix[[i]]$frequency)
   if(i == 1) {
     bivar1_df = temp_df
@@ -325,7 +325,7 @@ MaxRoadway = c(1, 2, 3, 4, 5, 6)
 MaxExposure = c(1, 2, 3, 4, 5)
 for(i in 1:5){
   temp_df <- data.frame(RoadwayExposure = MaxRoadway, 
-                        MaxExposure = MaxExposure[i],
+                        MaxPMExposure = MaxExposure[i],
                         Frequency = bivar3_list$feature_matrix[[i]]$frequency)
   if(i == 1) {
     bivar3_df = temp_df

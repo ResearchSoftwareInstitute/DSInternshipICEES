@@ -124,7 +124,7 @@ length(unique(uni_all_df$feature))
 We select the three features of interest and rename the variables with simpler names for use later.
 
 * `EDVisits` = Total ED/Inpatient Visits, 
-* `MaxDailyExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `MaxPMExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
 * `RoadwayExposure` = Major Roadway Highway Exposure.
 
 ```{r}
@@ -133,7 +133,7 @@ uni_df <- uni_all_df %>%
   select(Feature = feature, Value = value, Frequency = frequency) %>%
   mutate(Feature = recode(Feature, TotalEDInpatientVisits = "EDVisits",
                           MajorRoadwayHighwayExposure = "RoadwayExposure",
-                          MaxDailyPM2.5Exposure_qcut = "MaxDailyExposure"))
+                          MaxDailyPM2.5Exposure_qcut = "MaxPMExposure"))
 uni_df
   
 ```

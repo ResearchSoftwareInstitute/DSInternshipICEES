@@ -28,7 +28,7 @@ In this folder, we are reviewing, editing, and organizing the code originally wr
 The test case we are going to work on first is for the three variables:
 
 * `EDVisits` = Total ED/Inpatient Visits, 
-* `MaxDailyExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `MaxPMExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
 * `RoadwayExposure` = Major Roadway Highway Exposure.
 
 ## Extracting the data through the OpenAPI
@@ -43,9 +43,9 @@ It creates the data frames `uni_all_df`, which contains all univariate results, 
 
 The following data frames are created.
 
-* `bivar_EDvsME_df`: `EDVisits` versus `MaxDailyExposure`
+* `bivar_EDvsME_df`: `EDVisits` versus `MaxPMExposure`
 * `bivar_EDvsRE_df`: `EDVisits` versus `RoadwayExposure`
-* `bivar_REvsME_df`: `RoadwayExposure` versus `MaxDailyExposure`
+* `bivar_REvsME_df`: `RoadwayExposure` versus `MaxPMExposure`
 
 **File**  `04_make_trivariate_table.RMD`
 

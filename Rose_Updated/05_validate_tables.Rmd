@@ -1,7 +1,7 @@
 ---
 title: "Validation of Tables"
 author: "Haaland"
-date: "3/5/2020"
+date: "03/06/2020"
 output: html_document
 ---
 
@@ -13,17 +13,17 @@ library(tidyverse)
 
 ## Load the tables
 
-In files 2-4, we created and saved the univariate, bivariate and trivariate tablesfor the variables:
+In files 2-4, we created and saved the univariate, bivariate and trivariate tables for the variables:
 
 * `EDVisits` = Total ED/Inpatient Visits, 
-* `MaxDailyExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `MaxPMExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
 * `RoadwayExposure` = Major Roadway Highway Exposure.
 
 The three pairwise combinations of binary tables are labeled as follows:
 
-* `bivar_EDvsME_df`: `EDVisits` versus `MaxDailyExposure`
+* `bivar_EDvsME_df`: `EDVisits` versus `MaxPMExposure`
 * `bivar_EDvsRE_df`: `EDVisits` versus `RoadwayExposure`
-* `bivar_REvsME_df`: `RoadwayExposure` versus `MaxDailyExposure`
+* `bivar_REvsME_df`: `RoadwayExposure` versus `MaxPMExposure`
 
 We start by loading the data.
 
@@ -66,3 +66,92 @@ uni_df %>%
 ```
 
 We can see that the 57 subjects with 10 or more visits are correctly left out of the bivariate tables based on the total counts.
+
+## Compare bivariate marginals to univariate
+
+To verify the correctness of the data, we can compare the marginal distributions from the bivariate tables to the univariate distributions.
+
+### EDVisits
+
+First we consider the univariate and marginal distributions for EDVisits. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. The results are be the same.
+
+```{r}
+bv1_df <- bivar_EDvsME_df %>%
+  group_by(EDVisits) %>%
+  summarize(bv1Frequency = sum(Frequency)) %>%
+  select(vb1Value = EDVisits, bv1Frequency)
+bv2_df <- bivar_EDvsRE_df %>%
+  group_by(EDVisits) %>%
+  summarize(bv2Frequency = sum(Frequency)) %>%
+  select(vb2Value = EDVisits, bv2Frequency)
+tr1_df <- tri_df %>%
+  group_by(EDVisits) %>%
+  summarize(triFrequency = sum(Frequency)) %>%
+  select(truValue = EDVisits, triFrequency)
+un_df <- uni_df %>%
+  filter(Feature == "EDVisits",
+         as.numeric(Value) < 10) %>%
+  rename(uniFrequency = Frequency)
+comp1_df <- cbind(un_df,bv1_df,bv2_df,tr1_df) %>%
+  select(Feature, Value, uniFrequency, bv1Frequency, bv2Frequency, triFrequency)
+comp1_df
+```
+
+We can see by inspection, that the results look correct. We test that formally below:
+
+```{r}
+comp1_df %>%
+  transmute(Feature = Feature, Value = Value, agree = ((uniFrequency == bv1Frequency) & 
+                                                         (uniFrequency == bv2Frequency) &
+                                                        (uniFrequency == triFrequency)))
+```
+
+### RoadwayExposure
+
+First we consider the univariate and marginal distributions for RoadwayExposure. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. In this comparison, we see differences among the data extraction approaches.
+
+```{r}
+bv1_df <- bivar_EDvsRE_df %>%
+  group_by(RoadwayExposure) %>%
+  summarize(bv1Frequency = sum(Frequency)) %>%
+  select(vb1Value = RoadwayExposure, bv1Frequency)
+bv2_df <- bivar_REvsME_df %>%
+  group_by(RoadwayExposure) %>%
+  summarize(bv2Frequency = sum(Frequency)) %>%
+  select(vb2Value = RoadwayExposure, bv2Frequency)
+tr1_df <- tri_df %>%
+  group_by(RoadwayExposure) %>%
+  summarize(triFrequency = sum(Frequency)) %>%
+  select(truValue = RoadwayExposure, triFrequency)
+un_df <- uni_df %>%
+  filter(Feature == "RoadwayExposure") %>%
+  rename(uniFrequency = Frequency)
+comp2_df <- cbind(un_df,bv1_df,bv2_df,tr1_df) %>%
+  select(Feature, Value, uniFrequency, bv1Frequency, bv2Frequency, triFrequency)
+comp2_df
+```
+
+### MaxPMExposure
+
+First we consider the univariate and marginal distributions for MaxPMExposure. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. In this comparison, we see differences among the data extraction approaches.
+
+```{r}
+bv1_df <- bivar_EDvsME_df %>%
+  group_by(MaxPMExposure) %>%
+  summarize(bv1Frequency = sum(Frequency)) %>%
+  select(vb1Value = MaxPMExposure, bv1Frequency)
+bv2_df <- bivar_REvsME_df %>%
+  group_by(MaxPMExposure) %>%
+  summarize(bv2Frequency = sum(Frequency)) %>%
+  select(vb2Value = MaxPMExposure, bv2Frequency)
+tr1_df <- tri_df %>%
+  group_by(MaxPMExposure) %>%
+  summarize(triFrequency = sum(Frequency)) %>%
+  select(truValue = MaxPMExposure, triFrequency)
+un_df <- uni_df %>%
+  filter(Feature == "MaxPMExposure") %>%
+  rename(uniFrequency = Frequency)
+comp3_df <- cbind(un_df,bv1_df,bv2_df,tr1_df) %>%
+  select(Feature, Value, uniFrequency, bv1Frequency, bv2Frequency, triFrequency)
+comp3_df
+```
