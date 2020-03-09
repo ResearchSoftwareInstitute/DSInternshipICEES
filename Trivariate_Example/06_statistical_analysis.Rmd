@@ -1,0 +1,47 @@
+---
+title: "Statistical Analysis"
+author: "Haaland"
+date: "3/8/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(MASS)
+load("RData/tri_df.RData")
+```
+
+## Graphical analysis
+
+```{r, fig.width = 7}
+ggplot(tri_df, aes(x = EDVisits, y = log(Frequency+1), color = MaxPMExposure)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(RoadwayExposure ~ MaxPMExposure)
+```
+
+
+## Contingency Table Analysis
+
+In this session, we create a table from the trivariate data frame and test some standard hypotheses using a log linear model.
+
+```{r, message=FALSE}
+tri_table <- xtabs(Frequency ~ EDVisits + RoadwayExposure + MaxPMExposure, data = tri_df)
+kable(tri_table)
+```
+
+First, we fit the full model and test for the three-way interaction.
+
+```{r}
+mod1_fit <- loglm(Frequency  ~ EDVisits + RoadwayExposure + MaxPMExposure + EDVisits*RoadwayExposure + EDVisits*MaxPMExposure, tri_df)
+deviance(mod1_fit)
+```
+
+```{r}
+mod2_fit <- glm(Frequency  ~ EDVisits + RoadwayExposure + MaxPMExposure + EDVisits*RoadwayExposure + EDVisits*MaxPMExposure,
+                data = tri_df, family = poisson)
+summary(mod2_fit)
+```
+

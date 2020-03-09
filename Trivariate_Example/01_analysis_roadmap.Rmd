@@ -47,8 +47,13 @@ The following data frames are created.
 * `bivar_EDvsRE_df`: `EDVisits` versus `RoadwayExposure`
 * `bivar_REvsME_df`: `RoadwayExposure` versus `MaxPMExposure`
 
-**File**  `04_make_trivariate_table.RMD`
+**File**  `04_make_trivariate_table.Rmd`
 
 It creates the data frame `tri_df`
 
 ## Validation of the tables
+
+**File** `05_validate_tables.Rmd`
+
+Some basic examination of marginal distributions to explore differences in results based on how the OpenAPI was programmed. 
+
