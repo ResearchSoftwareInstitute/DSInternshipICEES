@@ -1,2 +1,2 @@
 # DSInternshipICEES
-Repository for Rise Wang's project work with the ICEES API
+Repository for Rose Wang's project work with the ICEES API
