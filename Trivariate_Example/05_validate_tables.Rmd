@@ -1,7 +1,7 @@
 ---
 title: "Validation of Tables"
 author: "Haaland"
-date: "03/06/2020"
+date: "03/11/2020"
 output: html_document
 ---
 
@@ -81,7 +81,7 @@ comp1_df %>%
 
 ### RoadwayExposure
 
-First we consider the univariate and marginal distributions for RoadwayExposure. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. In this comparison, we see differences among the data extraction approaches. I suggest that it matters which variable is specified as "a" in the call to the OpenAPI.
+First we consider the univariate and marginal distributions for RoadwayExposure. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. In this comparison, we see differences among the data extraction approaches. I show below that this is related to the truncation of the ED Visits variable.
 
 ```{r}
 bv1_df <- bivar_EDvsRE_df %>%
@@ -104,9 +104,33 @@ comp2_df <- cbind(un_df,bv1_df,bv2_df,tr1_df) %>%
 comp2_df
 ```
 
+The univariate frequency and the first bivariate frequency give different values as can be seen above. The difference in the total is
+
+```{r}
+sum(comp2_df$uniFrequency) - sum(comp2_df$bv1Frequency)
+```
+
+If we look at the number of truncated values based on ED visits, we get the same number:
+
+```{r}
+uni_df %>%
+  filter(Feature == "EDVisits",
+         as.numeric(Value) > 9) %>%
+  summarize(Truncated_Number = sum(Frequency))
+
+```
+
+The univariate frequency and the trivariate marginal frequency give different values as can be seen above. The difference in the total is
+
+```{r}
+sum(comp2_df$uniFrequency) - sum(comp2_df$triFrequency)
+```
+
+This difference can also be seen to be the same as for the bivariate table. So we conclude that the differences in marginals are due to the truncation of ED Visits.
+
 ### MaxPMExposure
 
-First we consider the univariate and marginal distributions for MaxPMExposure. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. In this comparison, we see differences among the data extraction approaches. Interestingly, the univariate frequency agrees with the REvsME table.
+First we consider the univariate and marginal distributions for MaxPMExposure. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. In this comparison, we see same pattern of differences in the marginal frequences as above.
 
 ```{r}
 bv1_df <- bivar_EDvsME_df %>%
@@ -128,7 +152,7 @@ comp3_df <- cbind(un_df,bv1_df,bv2_df,tr1_df) %>%
   select(Feature, Value, uniFrequency, bv1Frequency, bv2Frequency, triFrequency)
 comp3_df
 ```
+```{r}
+sum(comp3_df$uniFrequency) - sum(comp3_df$bv1Frequency)
+```
 
-## Bivariate tables
-
-In this section we compare the three bivariate tables as directly called via the OpenAPI with the marginals of the trivariate table.

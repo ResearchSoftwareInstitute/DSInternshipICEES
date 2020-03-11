@@ -11,6 +11,7 @@
 
 <meta name="author" content="Haaland" />
 
+<meta name="date" content="2020-03-05" />
 
 <title>Analysis Roadmap</title>
 
@@ -364,7 +365,7 @@ summary {
 
 <h1 class="title toc-ignore">Analysis Roadmap</h1>
 <h4 class="author">Haaland</h4>
-<h4 class="date">2/3/2020</h4>
+<h4 class="date">03/05/2020</h4>
 
 </div>
 
@@ -382,25 +383,30 @@ summary {
 </ol>
 <p>The test case we are going to work on first is for the three variables:</p>
 <ul>
-<li>Total ED/Inpatient Visits,</li>
-<li>Average Daily PM 2.5 Exposure,</li>
-<li>Major Roadway Highway Exposure.</li>
+<li><code>EDVisits</code> = Total ED/Inpatient Visits,</li>
+<li><code>MaxPMExposure</code> = Maximum Daily PM 2.5 Exposure (qcut),</li>
+<li><code>RoadwayExposure</code> = Major Roadway Highway Exposure.</li>
 </ul>
 </div>
 <div id="extracting-the-data-through-the-openapi" class="section level2">
 <h2>Extracting the data through the OpenAPI</h2>
 <p>We modified the code provided by Rose in <code>P(XYZ) Table.Rmd</code> to create data frames that contain the univariate, bivariate, and trivariate tables.</p>
 <p><strong>File</strong> = <code>02_make_univariate_tables.Rmd</code></p>
-<p>It creates the data frame <code>univariate_df</code>.</p>
+<p>It creates the data frames <code>uni_all_df</code>, which contains all univariate results, and <code>uni_df</code>, which contains just the three features of interest.</p>
 <p><strong>File</strong> = <code>03_make_bivariate_tables.Rmd</code></p>
 <p>The following data frames are created.</p>
 <ul>
-<li><code>bivar_EDvsMDE_df</code>: <code>EDVisits</code> versus <code>MaxDailyExposure</code></li>
+<li><code>bivar_EDvsME_df</code>: <code>EDVisits</code> versus <code>MaxPMExposure</code></li>
 <li><code>bivar_EDvsRE_df</code>: <code>EDVisits</code> versus <code>RoadwayExposure</code></li>
-<li><code>bivar_REvsME_df</code>: <code>RoadwayExposure</code> versus <code>MaxDailyExposure</code></li>
+<li><code>bivar_REvsME_df</code>: <code>RoadwayExposure</code> versus <code>MaxPMExposure</code></li>
 </ul>
-<p><strong>File</strong> <code>04_make_trivariate_table.RMD</code></p>
+<p><strong>File</strong> <code>04_make_trivariate_table.Rmd</code></p>
 <p>It creates the data frame <code>tri_df</code></p>
+</div>
+<div id="validation-of-the-tables" class="section level2">
+<h2>Validation of the tables</h2>
+<p><strong>File</strong> <code>05_validate_tables.Rmd</code></p>
+<p>Some basic examination of marginal distributions to explore differences in results based on how the OpenAPI was programmed.</p>
 </div>
 
 
