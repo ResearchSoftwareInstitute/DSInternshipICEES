@@ -1,7 +1,7 @@
 ---
 title: "Statistical Analysis"
 author: "Haaland"
-date: "3/8/2020"
+date: "3/14/2020"
 output: html_document
 ---
 
@@ -13,24 +13,39 @@ library(MASS)
 load("RData/tri_df.RData")
 ```
 
+## Introduction
+
+
+In this document, we are going to explore some graphical displays and consider possible statistical models and hypotheses tests. As a reminder, our data looks as follows:
+
+```{r, message=FALSE}
+kable(tri_df)
+```
+
 ## Graphical analysis
 
-```{r, fig.width = 7}
-ggplot(tri_df, aes(x = EDVisits, y = log(Frequency+1), color = MaxPMExposure)) +
-  geom_point() +
-  geom_line() +
-  facet_grid(RoadwayExposure ~ MaxPMExposure)
+In the first graph, we diplay the frequencies on the y-axis using a log scale. We number of ED Visits is on the x-axis. 
+Then we create facets for each combination of Roadway Exposure and Max PM2.5 Exposure. It is interesting to compare the figures within any row or column to see the effects of one variable conditioned on a second.
+
+```{r, fig.width = 7, fig.height = 7}
+tri_df %>%
+  mutate(RoadwayExposure = paste0("RoadwayExp = ", RoadwayExposure),
+         MaxPMExposure = paste0("MaxPMExp = ", MaxPMExposure)) %>%
+  ggplot(aes(x = EDVisits, y = log(Frequency+1))) +
+    geom_point() +
+    geom_line() +
+    facet_grid(RoadwayExposure ~ MaxPMExposure) +
+    labs(y = "Frequency") + 
+    scale_x_continuous(breaks = 0:9) +
+    theme(text = element_text(size = 20)) +
+    scale_y_continuous(breaks = log(c(5,10,50,100,500,1000,2000)+1), labels = c(5,10,50,100,500,1000,2000))
+    
 ```
 
 
 ## Contingency Table Analysis
 
-In this session, we create a table from the trivariate data frame and test some standard hypotheses using a log linear model.
 
-```{r, message=FALSE}
-tri_table <- xtabs(Frequency ~ EDVisits + RoadwayExposure + MaxPMExposure, data = tri_df)
-kable(tri_table)
-```
 
 First, we fit the full model and test for the three-way interaction.
 
