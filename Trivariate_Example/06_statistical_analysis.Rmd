@@ -42,6 +42,23 @@ tri_df %>%
     
 ```
 
+Another wasy to more specifically compare effects is to put multiple curves on the same figure. An example is shown below:
+
+```{r}
+tri_df %>%
+  mutate(RoadwayExposure = paste0("RoadwayExp = ", RoadwayExposure)) %>%
+  ggplot(aes(x = EDVisits, y = log(Frequency+1), group = MaxPMExposure, color = MaxPMExposure)) +
+    geom_point() +
+    geom_line() +
+    facet_wrap(~RoadwayExposure) +
+    labs(y = "Frequency") + 
+    scale_x_continuous(breaks = 0:9) +
+    theme(text = element_text(size = 20),
+          legend.position = "bottom") +
+    scale_y_continuous(breaks = log(c(10,100,1000,2000)+1), labels = c(10,100,1000,2000))
+    
+```
+
 
 ## Contingency Table Analysis
 
