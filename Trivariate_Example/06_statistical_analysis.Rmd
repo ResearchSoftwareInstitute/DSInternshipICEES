@@ -24,8 +24,12 @@ kable(tri_df)
 
 ## Graphical analysis
 
-In the first graph, we diplay the frequencies on the y-axis using a log scale. We number of ED Visits is on the x-axis. 
-Then we create facets for each combination of Roadway Exposure and Max PM2.5 Exposure. It is interesting to compare the figures within any row or column to see the effects of one variable conditioned on a second.
+The likely goal of the analysis is to determine what factors affect the frequency of emergency room visits (EDVisits). If we were using the raw data, we would probably do a generalized linear model with a Poisson family distribution, where each row of the data frame is for an individual subject. In that case, we could meaningfully ask questions about the mean number of ED Visits and how that is affected by roadway and particle exposure. Since we don't have access to the raw data, we are going to start from the viewpoint that we are going to investigate the distribution of ED Visits and how that is affected by the two types of exposure.
+
+
+### Displaying all of the data
+
+In the first graph, we display the frequencies on the y-axis using a log scale. We number of ED Visits is on the x-axis. Then we create facets for each combination of Roadway Exposure and Max PM2.5 Exposure. The curve in each figure is equivalent to the distribution of ED Visits within the population specified by the marginal variables. So we are interested in how the shape of the curves reveals changes in distribution based on exposure. It is interesting to compare the figures within any row or column to see the effects of one variable conditioned on a second.
 
 ```{r, fig.width = 7, fig.height = 7}
 tri_df %>%
@@ -42,7 +46,9 @@ tri_df %>%
     
 ```
 
-Another wasy to more specifically compare effects is to put multiple curves on the same figure. An example is shown below:
+### Comparing EDVisit distributions within a particular type of exposure
+
+Another ways to more specifically compare effects is to put multiple curves on the same figure. An example is shown below:
 
 ```{r}
 tri_df %>%
@@ -59,6 +65,56 @@ tri_df %>%
     
 ```
 
+
+### Normalization
+
+The drawback of looking at the frequency curves is that the number of cases in each of the combinations of the two types of exposure is not related to the shape of the distributions. This is akin to the notion that in a contingency table the margins are fixed. Since we are interested in the shape of the distribution of EDVisits, we are going to normalize the frequency in each combination of the two exposure types.
+
+We show the results of the normalization code below:
+
+```{r}
+tri_df %>%
+  mutate(RoadwayExposure = paste0("RoadwayExp = ", RoadwayExposure),
+         MaxPMExposure = paste0("MaxPMExp = ", MaxPMExposure)) %>%
+  group_by(RoadwayExposure, MaxPMExposure) %>%
+  mutate(Rate = round(Frequency / sum(Frequency),2)) %>%
+  arrange(MaxPMExposure, RoadwayExposure, EDVisits)
+```
+
+Now we remake the two graphs above using the normalized data.
+
+```{r, fig.width = 7, fig.height = 7}
+tri_df %>%
+  mutate(RoadwayExposure = paste0("RoadwayExp = ", RoadwayExposure),
+         MaxPMExposure = paste0("MaxPMExp = ", MaxPMExposure)) %>%
+  group_by(RoadwayExposure, MaxPMExposure) %>%
+  mutate(Rate = Frequency / sum(Frequency)) %>%
+  ggplot(aes(x = EDVisits, y = Rate)) +
+    geom_point() +
+    geom_line() +
+    facet_grid(RoadwayExposure ~ MaxPMExposure) +
+    labs(y = "Rate") + 
+    scale_x_continuous(breaks = 0:9) +
+    theme(text = element_text(size = 20))
+    
+```
+
+
+```{r, fig.height = 7}
+tri_df %>%
+  mutate(RoadwayExposure = paste0("RoadwayExp = ", RoadwayExposure)) %>%
+  group_by(RoadwayExposure, MaxPMExposure) %>%
+  mutate(Rate = Frequency / sum(Frequency)) %>%
+  ggplot(aes(x = EDVisits, y = Rate, group = MaxPMExposure, color = MaxPMExposure)) +
+    geom_point() +
+    geom_line() +
+    facet_wrap(~RoadwayExposure) +
+    labs(y = "Frequency") + 
+    scale_x_continuous(breaks = 0:9) +
+    theme(text = element_text(size = 20),
+          legend.position = "bottom")
+    
+```
 
 ## Contingency Table Analysis
 

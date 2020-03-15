@@ -57,3 +57,9 @@ It creates the data frame `tri_df`
 
 Some basic examination of marginal distributions to explore differences in results based on how the OpenAPI was programmed. 
 
+## Statistical analysis
+
+**File** = `06_statistical_analysis.Rmd`
+
+Working on graphical displays to understand the content of the trivariate table. Also investigate possible models for significance testing.
+
