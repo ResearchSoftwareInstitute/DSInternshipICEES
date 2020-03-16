@@ -5,10 +5,11 @@ date: "3/14/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, message }
 knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
 library(tidyverse)
+library(MetricsWeighted)
 library(MASS)
 load("RData/tri_df.RData")
 ```
@@ -115,6 +116,112 @@ tri_df %>%
           legend.position = "bottom")
     
 ```
+
+## Computing and comparing weighted means
+
+Another way to look at the problem is that if we were considering the original data, we would be treating the number of EDVisits per individual as the response, and we would be looking for differences in means using a Poisson error distribution. We can't directly recreate that data from the three way table, but we can compute a weighted mean and standard deviation in each combination of roadway and particle exposure. Then we can compare those results graphically. We compute the weighted mean, weighted standard deviation, and weighted standard error. Then we make a simple graph. We'll do this separately for each of the two predictor features and then for the combination.
+
+### Effect of RoadwayExposure on EDVisits
+
+Note that the error bars include the variability due to particle exposure, which we see below is failry large, so the error bars are pretty big. This could be fixed by getting more correct estimates from a model. I think we could still easily conclude that the effect of roadway exposure overall is fairly small.
+
+```{r}
+tri_df %>%
+  group_by(RoadwayExposure) %>%
+  summarize(n = sum(Frequency),
+            wtd.mean = weighted_mean(EDVisits, Frequency),
+            wtd.var = weighted_var(EDVisits, Frequency),
+            wtd.se = sqrt(wtd.var/n),  
+            error.top = min(wtd.mean + 2*wtd.se,9),
+            error.bot = max(wtd.mean - 2*wtd.se,0)) %>%
+  ggplot(aes(x = RoadwayExposure, y = wtd.mean)) + 
+    geom_point() +
+    geom_line() +
+    geom_errorbar(aes(ymin = error.bot, ymax = error.top), width = .1) +
+    labs(y = "Mean Number of ED Visits", 
+         title = "Overall Impact of Roadway Exposure on ED Visits\n (+/- 2* standard errors)") + 
+    scale_x_continuous(breaks = 0:9) +
+    theme(text = element_text(size = 10)) +
+    scale_y_continuous(breaks = seq(0,2, by = .25), 
+                       limits = c(0,1))
+```
+
+### Effect of MaxPMExposure on EDVisits
+
+Note that the error bars include the variability due to roadway exposure, but as we saw above there is not a lot of impact from roadway exposure, so these error bars seem pretty reasonable. The best thing, of course, would be to get estimates from a model.
+
+```{r}
+tri_df %>%
+  group_by(MaxPMExposure) %>%
+  summarize(n = sum(Frequency),
+            wtd.mean = weighted_mean(EDVisits, Frequency),
+            wtd.var = weighted_var(EDVisits, Frequency),
+            wtd.se = sqrt(wtd.var/n),  
+            error.top = min(wtd.mean + 2*wtd.se,9),
+            error.bot = max(wtd.mean - 2*wtd.se,0)) %>%
+  ggplot(aes(x = MaxPMExposure, y = wtd.mean)) + 
+    geom_point() +
+    geom_line() +
+    geom_errorbar(aes(ymin = error.bot, ymax = error.top), width = .1) +
+    labs(y = "Mean Number of ED Visits", 
+         title = "Overall Impact of MaxPMExposure on ED Visits\n (+/- 2* standard errors)") + 
+    scale_x_continuous(breaks = 0:9) +
+    theme(text = element_text(size = 10)) +
+    scale_y_continuous(breaks = seq(0,2, by = .25), 
+                       limits = c(0,1))
+```
+
+### Combined Effects
+
+
+```{r, fig.width = 7.5, fig.height = 7.5}
+tri_df %>%
+  group_by(RoadwayExposure, MaxPMExposure) %>%
+  summarize(n = sum(Frequency),
+            wtd.mean = weighted_mean(EDVisits, Frequency),
+            wtd.var = weighted_var(EDVisits, Frequency),
+            wtd.se = sqrt(wtd.var/n),  
+            error.top = min(wtd.mean + 2*wtd.se,9),
+            error.bot = max(wtd.mean - 2*wtd.se,0)) %>%
+  group_by() %>%
+  mutate(RoadwayExposure = paste0("RoadwayExp = ", RoadwayExposure)) %>%
+  ggplot(aes(x = MaxPMExposure, y = wtd.mean)) + 
+    geom_point() +
+    geom_line() +
+    geom_errorbar(aes(ymin = error.bot, ymax = error.top), width = .1) +
+    facet_wrap(~RoadwayExposure) +
+    labs(y = "Mean Number of ED Visits", 
+         title = "Combined Impact on ED Visits\n (+/- 2* standard errors)") + 
+    scale_x_continuous(breaks = 0:9) +
+    theme(text = element_text(size = 20)) +
+    scale_y_continuous(breaks = seq(0,2, by = .25))
+```
+
+
+
+```{r, fig.width = 7.5, fig.height = 7.5}
+tri_df %>%
+  group_by(RoadwayExposure, MaxPMExposure) %>%
+  summarize(n = sum(Frequency),
+            wtd.mean = weighted_mean(EDVisits, Frequency),
+            wtd.var = weighted_var(EDVisits, Frequency),
+            wtd.se = sqrt(wtd.var/n),  
+            error.top = min(wtd.mean + 2*wtd.se,9),
+            error.bot = max(wtd.mean - 2*wtd.se,0)) %>%
+  group_by() %>%
+  mutate(MaxPMExposure = paste0("MaxPMExp = ", MaxPMExposure)) %>%
+  ggplot(aes(x = RoadwayExposure, y = wtd.mean)) + 
+    geom_point() +
+    geom_line() +
+    geom_errorbar(aes(ymin = error.bot, ymax = error.top), width = .1) +
+    facet_wrap(~MaxPMExposure) +
+    labs(y = "Mean Number of ED Visits", 
+         title = "Combined Impact on ED Visits\n (+/- 2* standard errors)") + 
+    scale_x_continuous(breaks = 0:9) +
+    theme(text = element_text(size = 20)) +
+    scale_y_continuous(breaks = seq(0,2, by = .25))
+```
+
 
 ## Contingency Table Analysis
 
