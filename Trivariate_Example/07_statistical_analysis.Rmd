@@ -1,0 +1,133 @@
+---
+title: "EStatistical Analysis"
+author: "Haaland"
+date: "3/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE }
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(emmeans)
+library(MASS)
+load("RData/tri_df.RData")
+```
+
+## Introduction
+
+
+The previous visual analysis, I came to the conclusion that the current data, can easily be translated to a form that is suitable for general analysis. In particular, EDVisits is an actual count, not a bin. So if we can recover the "pre-binned" data for EDVisits just by expanding the data based on the count value. Of course, the remaining two variable remain as binned variables, so we need to be sure we treat them as factors in the analysis. Just as a reminder, the data, as extracted and reformated is shown below. 
+
+```{r, message=FALSE}
+head(tri_df)
+```
+
+## Expanding the data
+
+So the plan, is to replicate each row of the `tri_df` data frame by the value of the variable Frequency. Once we do that, we will also recode the two exposure variables so that they are clearly factors and not numeric. First we create the expanded data frame, then we will check for correctness.
+
+```{r}
+expand_df <- tri_df %>%
+  arrange(EDVisits, RoadwayExposure, MaxPMExposure)
+expand_df <- tibble(EDVisits = rep(expand_df$EDVisits, expand_df$Frequency), 
+              RoadwayExposure = rep(expand_df$RoadwayExposure, expand_df$Frequency), 
+              MaxPMExposure = rep(expand_df$MaxPMExposure, expand_df$Frequency),
+              Frequency = rep(expand_df$Frequency, expand_df$Frequency)) 
+```
+
+THe following code compares the computed frequencies in the new data frame to those from the original data frame. One complication is that the expansion eliminates all rows in the original data frame that had zero frequency. So we have to adjust for that in code. The test at the end of this block compares the original nonzero Frequencies to those computed from the new data.
+
+```{r}
+check1_df  <- expand_df %>%
+  group_by(EDVisits, RoadwayExposure, MaxPMExposure) %>%
+  arrange(EDVisits, RoadwayExposure, MaxPMExposure) %>%
+  summarize(newFreq = n())
+check2_df <- tri_df %>%
+  filter(Frequency != 0) %>% 
+  arrange(EDVisits, RoadwayExposure, MaxPMExposure) 
+all(check2_df$Frequency==check1_df$newFreq)
+```
+
+Before going further, we are going to modify the two exposures to make sure they will be treated as factors in all subsequent analysis. We will also drop the Frequency variable as that is no longer relevant.
+
+```{r}
+expand_df <- expand_df %>%
+  mutate(RoadwayExposure = paste0("RExp=", RoadwayExposure),
+         MaxPMExposure = paste0("PMExp=", MaxPMExposure)) %>%
+  dplyr::select(-Frequency) %>%
+  mutate(RoadwayExposure = as.factor(RoadwayExposure),
+         MaxPMExposure = as.factor(MaxPMExposure))
+head(expand_df)
+```
+
+
+## Graphical analysis
+
+Next we make a few graphs similar to those in the previous file so that we can verify our intuition about the correctness of the data.
+
+
+### Comparing EDVisit distributions within a particular type of exposure
+
+Another ways to more specifically compare effects is to put multiple curves on the same figure. An example is shown below.
+
+```{r, fig.width = 7.5, fig.height = 7.5, message = FALSE}
+expand_df %>%
+  ggplot(aes(x = EDVisits)) +
+    geom_histogram(binwidth = 1) +
+    facet_grid(RoadwayExposure~MaxPMExposure) +
+    labs(y = "Frequency") +
+    scale_x_continuous(breaks = 0:9) +
+    scale_y_log10() +
+    theme(text = element_text(size = 20))
+    
+```
+
+
+## Fitting the GLM model
+
+The data now are organized appropriately and match the assumptions of a generalized linear model with a Poisson family error distribution. Note that the first model we fit includes the interaction between the two exposure types. In the summary, we note that particle exposure has a much greater effect on EDVisits than roadway exposure. There is also a significant interaction.
+
+```{r}
+glm_fit <- glm(EDVisits  ~ RoadwayExposure*MaxPMExposure,
+                data = expand_df, 
+               family = poisson)
+summary(aov(glm_fit))
+```
+
+We show the standard diagnostic plots below. We leave for a later date the task of assessing the model fit, especially whether or not their is overdispersion.
+
+```{r}
+plot(glm_fit, ask = FALSE)
+
+```
+
+
+## Visualizing the model
+
+We use the package `emmeans` to calculate estimated means and confidence intervals for the main effect of MaxPMExposure. As the error message suggests, to fully understand the data, we need to 
+
+
+```{r}
+pmeff_df <- emmeans(glm_fit, ~MaxPMExposure) %>%
+  as.data.frame %>%
+  mutate(pmmean = exp(emmean),
+         LCL = exp(asymp.LCL),
+         UCL = exp(asymp.UCL))
+  pmeff_df
+```
+
+```{r}
+pmeff_df %>%
+  ggplot(aes(x = MaxPMExposure, y = pmmean)) +
+    geom_point() +
+    geom_errorbar(aes(ymin = LCL, ymax = UCL), width = .1) +
+    labs(y = "Mean ED Vsisits",
+      title = "GLM Results for MaxPMExposure") +
+    scale_y_continuous(breaks = seq(0, 1, by = .2), 
+                       limits = c(0, 1)) +
+    theme(text = element_text(size = 10))
+```
+
+
+

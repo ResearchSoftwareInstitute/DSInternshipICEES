@@ -1,7 +1,7 @@
 ---
-title: "Statistical Analysis"
+title: "Exploratory Visual Analysis"
 author: "Haaland"
-date: "3/14/2020"
+date: "3/16/2020"
 output: html_document
 ---
 

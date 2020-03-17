@@ -57,9 +57,15 @@ It creates the data frame `tri_df`
 
 Some basic examination of marginal distributions to explore differences in results based on how the OpenAPI was programmed. 
 
+## Exploratory analysis
+
+**File** = `06_exploratory_visual_analysis.Rmd`
+
+As a general rule, I think that getting the right graphical analysis will lead to getting the right statistical analysis. In this file, I consider a variety of visual displays that eventually lead to the approach taken in the next file.
+
 ## Statistical analysis
 
-**File** = `06_statistical_analysis.Rmd`
+**File** = `07_statistical_analysis.Rmd`
 
-Working on graphical displays to understand the content of the trivariate table. Also investigate possible models for significance testing.
+Given that the EDVisits variable is actually a count and not a bin, I have come to the conclusion that it is possible to actually "recreate" the original binned data in a form that is suitable for statistical analysis. That analysis is in this file.
 
