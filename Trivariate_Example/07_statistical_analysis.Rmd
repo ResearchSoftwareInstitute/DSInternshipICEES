@@ -86,30 +86,56 @@ expand_df %>%
 
 ## Fitting the GLM model
 
-The data now are organized appropriately and match the assumptions of a generalized linear model with a Poisson family error distribution. Note that the first model we fit includes the interaction between the two exposure types. In the summary, we note that particle exposure has a much greater effect on EDVisits than roadway exposure. There is also a significant interaction.
+The data now are organized appropriately and match the assumptions of a generalized linear model with a Poisson family error distribution. Note that the first model we fit includes the interaction between the two exposure types. One of the first tasks of assessing the model is to determine whether or not there is over dispersion. We do that below.
 
 ```{r}
-glm_fit <- glm(EDVisits  ~ RoadwayExposure*MaxPMExposure,
+glm_fit1 <- glm(EDVisits  ~ RoadwayExposure*MaxPMExposure,
                 data = expand_df, 
                family = poisson)
-summary(aov(glm_fit))
+summary(glm_fit1)
 ```
 
-We show the standard diagnostic plots below. We leave for a later date the task of assessing the model fit, especially whether or not their is overdispersion.
+The primary indication of overdispersion in a Poisson model is when the Residual Deviance (here 33664) is greater than the degrees of freedom (23006). Since we see that here, we go to the next step of fitting a quasi-Posson model that estimates the dispersion factor instead of assuming that it is 1.0.
+
 
 ```{r}
-plot(glm_fit, ask = FALSE)
+glm_fit2 <- glm(EDVisits  ~ RoadwayExposure*MaxPMExposure,
+                data = expand_df, 
+               family = quasipoisson)
+summary(glm_fit2)
+```
 
+
+The following shows the p-value from likelihood-ratio test in which the alternative hypothesis is that a quasipoisson GLM with overdispersion is significantly better than a regular poisson GLM without overdispersion. Note the p-value is essentially 0 so we conclude that there is a strong indication of overdispersion, and we go with the quasi-Poisson family.
+
+```{r}
+pchisq(summary(glm_fit2)$dispersion * glm_fit1$df.residual, glm_fit1$df.residual, lower = F)
+```
+
+
+We show the standard diagnostic plots below. We don't see anything particularly unusual in these plots.
+
+```{r}
+plot(glm_fit2, ask = FALSE)
+
+```
+
+Finally we look at an analysis of variance type summary of the model. We see that both exposure types and their interaction are significant.
+
+```{r}
+summary(aov(glm_fit2))
 ```
 
 
 ## Visualizing the model
 
-We use the package `emmeans` to calculate estimated means and confidence intervals for the main effect of MaxPMExposure. As the error message suggests, to fully understand the data, we need to 
+### Main effect of particle exposure
+
+We use the package `emmeans` to calculate estimated means and confidence intervals for the main effect of `MaxPMExposure`. For this initial plot, we are only considering the "main effect". A full understanding requires looking at the interaction plot, which we will do shortly.
 
 
-```{r}
-pmeff_df <- emmeans(glm_fit, ~MaxPMExposure) %>%
+```{r, message=F}
+pmeff_df <- emmeans(glm_fit2, ~ MaxPMExposure) %>%
   as.data.frame %>%
   mutate(pmmean = exp(emmean),
          LCL = exp(asymp.LCL),
@@ -117,17 +143,76 @@ pmeff_df <- emmeans(glm_fit, ~MaxPMExposure) %>%
   pmeff_df
 ```
 
+I am not familiar enough with the data to comment on how surprising the plot below is. In particular, I find it odd that the exposure level of 4 shows a decrease as my naive assumption is that emergency visits would increase monotonically with exposure levels. 
+
 ```{r}
 pmeff_df %>%
   ggplot(aes(x = MaxPMExposure, y = pmmean)) +
     geom_point() +
+    geom_line(aes(x = 1:5, y = pmmean)) +
     geom_errorbar(aes(ymin = LCL, ymax = UCL), width = .1) +
     labs(y = "Mean ED Vsisits",
-      title = "GLM Results for MaxPMExposure") +
+      title = "GLM Main Effects Plot for MaxPMExposure") +
     scale_y_continuous(breaks = seq(0, 1, by = .2), 
                        limits = c(0, 1)) +
     theme(text = element_text(size = 10))
 ```
 
+### Main effect of roadway exposure
+
+Once again, we use the package `emmeans` to calculate estimated means and confidence intervals for the main effect of `RoadwayExposure`. For this initial plot, we are only considering the "main effect". A full understanding requires looking at the interaction plot, which we will do shortly.
 
 
+```{r, message=F}
+rweff_df <- emmeans(glm_fit2, ~ RoadwayExposure) %>%
+  as.data.frame %>%
+  mutate(rwmean = exp(emmean),
+         LCL = exp(asymp.LCL),
+         UCL = exp(asymp.UCL))
+  rweff_df
+```
+
+The main effect of roadway exposure shows that there the highest mean is at the exposure level of 2. The impact of RoadwayExposure, by itself, seems to be failry small. I am not familiar enough with the data to comment on the shape of teh curve.
+
+```{r}
+rweff_df %>%
+  ggplot(aes(x = RoadwayExposure, y = rwmean)) +
+    geom_point() +
+    geom_line(aes(x = 1:6, y =rwmean)) +
+    geom_errorbar(aes(ymin = LCL, ymax = UCL), width = .1) +
+    labs(y = "Mean ED Vsisits",
+      title = "GLM Main Effects Plot for RoadwayExposure") +
+    scale_y_continuous(breaks = seq(0, 1, by = .2), 
+                       limits = c(0, 1)) +
+    theme(text = element_text(size = 10))
+```
+
+### Interaction effect
+
+Because the two main effects interact significantly, the best interpretation is to make the full interaction plot. In particular, we do the calculations so that we can estimate mean EDVisits at each combination of exposures.
+
+
+```{r, message=F}
+inteff_df <- emmeans(glm_fit2, ~MaxPMExposure*RoadwayExposure) %>%
+  as.data.frame %>%
+  mutate(intmean = exp(emmean),
+         LCL = exp(asymp.LCL),
+         UCL = exp(asymp.UCL))
+  inteff_df
+```
+
+As we saw above, the average number of emergency visits is generally not a monotone function of particle exposure. The maximum number of visits as a function of particle exposure depends on the roadway exposure. I don't have the background to suggest a mechanism that might cause this.
+
+```{r, fig.width = 7}
+inteff_df %>%
+  ggplot(aes(x = MaxPMExposure, y = intmean)) +
+    geom_point() +
+    geom_line(aes(x = rep(1:5, 6), y = intmean)) +
+    geom_errorbar(aes(ymin = LCL, ymax = UCL), width = .1) +
+    facet_wrap(~ RoadwayExposure, ncol = 2) +
+    labs(y = "Mean ED Vsisits",
+      title = "Combined Effect of Two Exposure Types") +
+    scale_y_continuous(breaks = seq(0, 1, by = .2), 
+                       limits = c(0, 1.5)) +
+    theme(text = element_text(size = 20))
+```

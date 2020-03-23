@@ -223,20 +223,3 @@ tri_df %>%
 ```
 
 
-## Contingency Table Analysis
-
-
-
-First, we fit the full model and test for the three-way interaction.
-
-```{r}
-mod1_fit <- loglm(Frequency  ~ EDVisits + RoadwayExposure + MaxPMExposure + EDVisits*RoadwayExposure + EDVisits*MaxPMExposure, tri_df)
-deviance(mod1_fit)
-```
-
-```{r}
-mod2_fit <- glm(Frequency  ~ EDVisits + RoadwayExposure + MaxPMExposure + EDVisits*RoadwayExposure + EDVisits*MaxPMExposure,
-                data = tri_df, family = poisson)
-summary(mod2_fit)
-```
-
