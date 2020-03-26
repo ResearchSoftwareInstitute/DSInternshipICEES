@@ -1,11 +1,11 @@
 ---
 title: "Exploratory Visual Analysis"
 author: "Haaland"
-date: "3/16/2020"
+date: "3/25/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE, message }
+```{r setup, include=FALSE, message=FALSE }
 knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
 library(tidyverse)
@@ -17,10 +17,10 @@ load("RData/tri_df.RData")
 ## Introduction
 
 
-In this document, we are going to explore some graphical displays and consider possible statistical models and hypotheses tests. As a reminder, our data looks as follows:
+In this document, we are going to explore some graphical displays and consider possible statistical models and hypotheses tests. As a reminder, our data (first 15 rows) looks as follows:
 
-```{r, message=FALSE}
-kable(tri_df)
+```{r, message = FALSE}
+kable(tri_df[1:15, ])
 ```
 
 ## Graphical analysis
@@ -47,7 +47,7 @@ tri_df %>%
     
 ```
 
-### Comparing EDVisit distributions within a particular type of exposure
+### Comparing EdVisits distributions within a particular type of exposure
 
 Another ways to more specifically compare effects is to put multiple curves on the same figure. An example is shown below:
 
@@ -123,7 +123,7 @@ Another way to look at the problem is that if we were considering the original d
 
 ### Effect of RoadwayExposure on EDVisits
 
-Note that the error bars include the variability due to particle exposure, which we see below is failry large, so the error bars are pretty big. This could be fixed by getting more correct estimates from a model. I think we could still easily conclude that the effect of roadway exposure overall is fairly small.
+Note that the error bars include the variability due to particle exposure, which we see below is fairly large, so the error bars are pretty big. This could be fixed by getting more correct estimates from a model. I think we could still easily conclude that the effect of roadway exposure overall is fairly small.
 
 ```{r}
 tri_df %>%

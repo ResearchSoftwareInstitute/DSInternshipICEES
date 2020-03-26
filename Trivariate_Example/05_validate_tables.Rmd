@@ -1,7 +1,7 @@
 ---
 title: "Validation of Tables"
 author: "Haaland"
-date: "03/11/2020"
+date: "03/25/2020"
 output: html_document
 ---
 
@@ -39,8 +39,6 @@ load("RData/tri_df.RData")
 
 
 ## Brief examination of bivariate tables
-
-## Compare bivariate marginals to univariate
 
 To verify the correctness of the data, we can compare the marginal distributions from the bivariate tables to the univariate distributions.
 
@@ -130,7 +128,7 @@ This difference can also be seen to be the same as for the bivariate table. So w
 
 ### MaxPMExposure
 
-First we consider the univariate and marginal distributions for MaxPMExposure. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. In this comparison, we see same pattern of differences in the marginal frequences as above.
+First we consider the univariate and marginal distributions for MaxPMExposure. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. In this comparison, we see same pattern of differences in the marginal frequencies as above.
 
 ```{r}
 bv1_df <- bivar_EDvsME_df %>%

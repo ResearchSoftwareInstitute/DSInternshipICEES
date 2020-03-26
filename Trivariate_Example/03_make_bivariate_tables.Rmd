@@ -1,7 +1,7 @@
 ---
 title: "Make Bivariate Tables"
 author: "Perry Haaland"
-date: "03/05/2020"
+date: "03/25/2020"
 output: html_document
 ---
 
@@ -20,7 +20,7 @@ The univariate counts for each variable are the univariate marginal distribution
 
 * Before running this chunks in this script, please run the code in `02_make_univariate_tables.Rmd'.
 
-We use the `json` format of the interface. The data set that we aer extracting from is
+We use the `json` format of the interface. The data set that we are extracting from is
 
 * Cohort 22 (all patients),
 * 2010 data,
@@ -68,7 +68,7 @@ In order to make the code clearer, and perhaps pave the way for later automation
 
 * An alternative to this strategy would be to group all of the 10 visits or above subjects into one group. We leave that as an exercise for the future.
 
-### Table 1. Total ED Inpatient Visits versuys Maximum Daily PM 2.5 Exposure
+### Table 1. Total ED Inpatient Visits versus Maximum Daily PM 2.5 Exposure
 I picked a generic name for the table, for the time being. There probably should be more internal error checking.
 
 ```{r, message=FALSE}
@@ -159,7 +159,7 @@ bivar_EDvsME_df
 
 ```
 
-### Table 2. Total ED Inpatient Visits verus Major Roadway Highway Exposure
+### Table 2. Total ED Inpatient Visits versus Major Roadway Highway Exposure
 
 The second call will be `TotalEDInpatientVisits` versus `MajorRoadwayHighwayExposure`.
 

@@ -1,7 +1,7 @@
 ---
 title: "Make Trivariate Table"
 author: "Perry Haaland"
-date: "03/05/2019"
+date: "03/25/2019"
 output: html_document
 ---
 

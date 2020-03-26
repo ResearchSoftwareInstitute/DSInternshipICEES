@@ -1,7 +1,7 @@
 ---
 title: "Analysis Roadmap"
 author: "Haaland"
-date: "03/05/2020"
+date: "03/25/2020"
 output: html_document
 ---
 
@@ -68,4 +68,12 @@ As a general rule, I think that getting the right graphical analysis will lead t
 **File** = `07_statistical_analysis.Rmd`
 
 Given that the EDVisits variable is actually a count and not a bin, I have come to the conclusion that it is possible to actually "recreate" the original binned data in a form that is suitable for statistical analysis. That analysis is in this file.
+
+The graphics developed in the previous file are now presented with correct error estimates.
+
+This file also suggests some parameter estimates and statistical measures that can be compared when fitting models using "the same" data from two different data sources; namely, from the OpenAPI and from behind the firewall.
+
+** File ** = `08_summary_and_conclusions.Rmd`
+
+A brief summary of the major findings and methods used in this project.
 

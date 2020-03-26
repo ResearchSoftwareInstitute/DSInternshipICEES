@@ -1,7 +1,7 @@
 ---
 title: "Make Univariate Tables"
 author: "Perry Haaland"
-date: "03/05/2020"
+date: "03/25/2020"
 output: html_document
 ---
 
@@ -19,7 +19,7 @@ Eventually we are going to extract a three-way table and the three corresponding
 The univariate counts for each variable are the univariate marginal distribution across the bins. The two-way tables are the bivariate marginal distributions. The three-way table, which is the full multivariate distribution is constrained by its marginal distributions, so we can use those to check on the correctness of the OpenAPI results.
 
 
-We use the `json` format of the interface. The data set that we aer extracting from is
+We use the `json` format of the interface. The data set that we are extracting from is
 
 * Cohort 22 (all patients),
 * 2010 data,
