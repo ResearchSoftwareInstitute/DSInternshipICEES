@@ -1,0 +1,156 @@
+---
+title: "Validation of Tables"
+author: "Haaland"
+date: "03/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+```
+
+
+## Load the tables
+
+In files 2-4, we created and saved the univariate, bivariate and trivariate tables for the variables:
+
+* `EDVisits` = Total ED/Inpatient Visits, 
+* `MaxPMExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `RoadwayExposure` = Major Roadway Highway Exposure.
+
+The three pairwise combinations of binary tables are labeled as follows:
+
+* `bivar_EDvsME_df`: `EDVisits` versus `MaxPMExposure`
+* `bivar_EDvsRE_df`: `EDVisits` versus `RoadwayExposure`
+* `bivar_REvsME_df`: `RoadwayExposure` versus `MaxPMExposure`
+
+We start by loading the data.
+
+```{r}
+load("RData/uni_df.RData")
+load("RData/bivar_EDvsME_df.RData")
+load("RData/bivar_EDvsRE_df.RData")
+load("RData/bivar_REvsME_df.RData")
+load("RData/tri_df.RData")
+```
+
+
+
+## Brief examination of bivariate tables
+
+To verify the correctness of the data, we can compare the marginal distributions from the bivariate tables to the univariate distributions.
+
+### EDVisits
+
+First we consider the univariate and marginal distributions for EDVisits. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. The results are be the same.
+
+```{r}
+bv1_df <- bivar_EDvsME_df %>%
+  group_by(EDVisits) %>%
+  summarize(bv1Frequency = sum(Frequency)) %>%
+  select(vb1Value = EDVisits, bv1Frequency)
+bv2_df <- bivar_EDvsRE_df %>%
+  group_by(EDVisits) %>%
+  summarize(bv2Frequency = sum(Frequency)) %>%
+  select(vb2Value = EDVisits, bv2Frequency)
+tr1_df <- tri_df %>%
+  group_by(EDVisits) %>%
+  summarize(triFrequency = sum(Frequency)) %>%
+  select(truValue = EDVisits, triFrequency)
+un_df <- uni_df %>%
+  filter(Feature == "EDVisits",
+         as.numeric(Value) < 10) %>%
+  rename(uniFrequency = Frequency)
+comp1_df <- cbind(un_df,bv1_df,bv2_df,tr1_df) %>%
+  select(Feature, Value, uniFrequency, bv1Frequency, bv2Frequency, triFrequency)
+comp1_df
+```
+
+We can see by inspection, that the results look correct. We test that formally below:
+
+```{r}
+comp1_df %>%
+  transmute(Feature = Feature, Value = Value, agree = ((uniFrequency == bv1Frequency) & 
+                                                         (uniFrequency == bv2Frequency) &
+                                                        (uniFrequency == triFrequency)))
+```
+
+### RoadwayExposure
+
+First we consider the univariate and marginal distributions for RoadwayExposure. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. In this comparison, we see differences among the data extraction approaches. I show below that this is related to the truncation of the ED Visits variable.
+
+```{r}
+bv1_df <- bivar_EDvsRE_df %>%
+  group_by(RoadwayExposure) %>%
+  summarize(bv1Frequency = sum(Frequency)) %>%
+  select(vb1Value = RoadwayExposure, bv1Frequency)
+bv2_df <- bivar_REvsME_df %>%
+  group_by(RoadwayExposure) %>%
+  summarize(bv2Frequency = sum(Frequency)) %>%
+  select(vb2Value = RoadwayExposure, bv2Frequency)
+tr1_df <- tri_df %>%
+  group_by(RoadwayExposure) %>%
+  summarize(triFrequency = sum(Frequency)) %>%
+  select(truValue = RoadwayExposure, triFrequency)
+un_df <- uni_df %>%
+  filter(Feature == "RoadwayExposure") %>%
+  rename(uniFrequency = Frequency)
+comp2_df <- cbind(un_df,bv1_df,bv2_df,tr1_df) %>%
+  select(Feature, Value, uniFrequency, bv1Frequency, bv2Frequency, triFrequency)
+comp2_df
+```
+
+The univariate frequency and the first bivariate frequency give different values as can be seen above. The difference in the total is
+
+```{r}
+sum(comp2_df$uniFrequency) - sum(comp2_df$bv1Frequency)
+```
+
+If we look at the number of truncated values based on ED visits, we get the same number:
+
+```{r}
+uni_df %>%
+  filter(Feature == "EDVisits",
+         as.numeric(Value) > 9) %>%
+  summarize(Truncated_Number = sum(Frequency))
+
+```
+
+The univariate frequency and the trivariate marginal frequency give different values as can be seen above. The difference in the total is
+
+```{r}
+sum(comp2_df$uniFrequency) - sum(comp2_df$triFrequency)
+```
+
+This difference can also be seen to be the same as for the bivariate table. So we conclude that the differences in marginals are due to the truncation of ED Visits.
+
+### MaxPMExposure
+
+First we consider the univariate and marginal distributions for MaxPMExposure. We calculate the marginal distributions from the bivariate and trivariate tables and compare to the univariate values. In this comparison, we see same pattern of differences in the marginal frequencies as above.
+
+```{r}
+bv1_df <- bivar_EDvsME_df %>%
+  group_by(MaxPMExposure) %>%
+  summarize(bv1Frequency = sum(Frequency)) %>%
+  select(vb1Value = MaxPMExposure, bv1Frequency)
+bv2_df <- bivar_REvsME_df %>%
+  group_by(MaxPMExposure) %>%
+  summarize(bv2Frequency = sum(Frequency)) %>%
+  select(vb2Value = MaxPMExposure, bv2Frequency)
+tr1_df <- tri_df %>%
+  group_by(MaxPMExposure) %>%
+  summarize(triFrequency = sum(Frequency)) %>%
+  select(truValue = MaxPMExposure, triFrequency)
+un_df <- uni_df %>%
+  filter(Feature == "MaxPMExposure") %>%
+  rename(uniFrequency = Frequency)
+comp3_df <- cbind(un_df,bv1_df,bv2_df,tr1_df) %>%
+  select(Feature, Value, uniFrequency, bv1Frequency, bv2Frequency, triFrequency)
+comp3_df
+```
+```{r}
+sum(comp3_df$uniFrequency) - sum(comp3_df$bv1Frequency)
+```
+

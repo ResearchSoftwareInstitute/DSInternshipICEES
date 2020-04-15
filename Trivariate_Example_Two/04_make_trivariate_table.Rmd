@@ -1,0 +1,132 @@
+---
+title: "Make Trivariate Table"
+author: "Perry Haaland"
+date: "03/25/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(jsonlite)
+library(httr)
+```
+
+## Trivariate Counts
+
+In this file we make three-way, or trivariate table. In previous files we created the univariate table and the three bivariate tables for Roadway Exposure, Emergency Room Visits, and PM2.5 exposure. In order create the three-way table, we narrow the cohort of each of our calls to the API to one bin of the Total ED/Inpatient Visits feature. Thus, we first have to create each of the cohorts that we will be using. 
+
+```{r cohortcreation, message=FALSE}
+tri_cohorts <- c()
+urls <- "https://icees.renci.org/1.0.0/patient/2010/cohort"
+for(i in 0:9){
+  tri_body_tmp <- paste('{"TotalEDInpatientVisits":{"operator":"=","value":', i,'}}', sep = "")
+  tri_call_tmp <- httr::POST(urls, 
+                             body = as.character(tri_body_tmp), 
+                     accept_json(), 
+                     content_type("application/json"), 
+                     encode = "json")
+  tri_text_tmp <- httr::content(tri_call_tmp, "text")
+  tri_cohort <- jsonlite::fromJSON(tri_text_tmp, flatten = TRUE)$`return value`$cohort_id
+  tri_cohort = strsplit(tri_cohort, "COHORT:")[[1]][2]
+  tri_cohorts <- c(tri_cohorts, tri_cohort)
+}
+```
+
+Next, we can use the cohorts we just created to pull the bivariate distribution between Major Roadway Highway Exposure and Max Daily PM2.5 Exposure. We will use the parameters of: varying cohorts, year 2010, version 1.0.0 of ICEES data, and patient level data. We will also be using the Hypothesis Driven NxN Feature Association Functionality.
+
+```{r trivariate table, message=FALSE}
+for(i in 1:10){
+  cohort_url <- paste('https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A',
+                tri_cohorts[i],
+                '/feature_association2', 
+                sep = "")
+  cohort_call <- httr::POST(as.character(cohort_url),
+                        body ='{
+                        "feature_a": {
+                        "MajorRoadwayHighwayExposure": [{
+                        "operator": "=",
+                        "value": 1
+                        },{
+                        "operator": "=",
+                        "value": 2
+                        },{
+                        "operator": "=",
+                        "value": 3
+                        },{
+                        "operator": "=",
+                        "value": 4
+                        },{
+                        "operator": "=",
+                        "value": 5
+                        },
+                        {
+                        "operator": "=",
+                        "value": 6
+                        }]},
+                        "feature_b": {
+                        "MaxDailyPM2.5Exposure_qcut": [{
+                        "operator": "=",
+                        "value": 1
+                        },{
+                        "operator": "=",
+                        "value": 2
+                        },{
+                        "operator": "=",
+                        "value": 3
+                        },{
+                        "operator": "=",
+                        "value": 4
+                        },{
+                        "operator": "=",
+                        "value": 5
+                        }]}}',
+          accept_json(),
+          content_type("application/json"),
+          encode = "json")
+  cohort_text <- httr::content(cohort_call, "text")
+  cohort_list <- jsonlite::fromJSON(cohort_text, flatten = TRUE)$`return value`
+  ## have to hard code these values
+  EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+  MaxRoadway = c(1, 2, 3, 4, 5, 6)
+  MaxExposure = c(1, 2, 3, 4, 5)
+  for(j in 1:5){
+    temp_df <- data.frame(EDVisits = EDVisits[i],
+                          RoadwayExposure = MaxRoadway, 
+                          MaxPMExposure = MaxExposure[j],
+                          Frequency = cohort_list$feature_matrix[[j]]$frequency)
+    if(j == 1) {
+      cohort_df = temp_df
+    } else {
+      cohort_df <- rbind(cohort_df,temp_df)
+    }
+  }
+  if(i == 1){
+    tri_df = cohort_df
+  } else {
+    tri_df = rbind(tri_df,cohort_df)
+  }
+  }
+  dim(tri_df)
+```
+
+The table looks as follows:
+
+```{r}
+tri_df
+```
+
+The total number of subject reported in the trivariate table is as follows:
+
+```{r}
+sum(tri_df$Frequency)
+```
+
+## Save the resulting data frame
+
+
+```{r}
+save(tri_df, file = "RData/tri_df.RData")
+```
+
+

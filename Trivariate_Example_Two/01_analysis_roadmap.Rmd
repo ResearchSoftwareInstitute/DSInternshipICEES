@@ -1,0 +1,79 @@
+---
+title: "Analysis Roadmap"
+author: "Haaland"
+date: "03/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this folder, we are reviewing, editing, and organizing the code originally written by Rose Wang for her student project. As part of this work, it is important to lay out what was done in an logical order that can be easily followed and reproduced. The goal is to abstract out the important parts of this work into part of a test case. A simplified view this part of the work is as follows:
+
+1. Extract the data via the OpenAPI and construct a three way table. Identify any potential anomalies in the data. Complete a standard statistical analysis (TBD).
+
+2. From behind the firewall, extract the binned data corresponding to Step 1. Complete the same statistical analysis.
+
+3. From behind the firewall, extract the raw data corresponding to Step 1. Manually bin the data in order to do the standardized analysis.
+
+4. Extract an set of "true" values from the statistical analysis of Step 3. Extract corresponding values from the analyses of Steps 2 and 3. Compare and contrast the results for "correctness".
+
+5. Construct a test case that can be implemented in a standardized testing harness that validates the three way table paradigm.
+
+6. Based on the results so far, propose an approach to identify potential failure points. Find one or more interesting failure points and implement test cases.
+
+The test case we are going to work on first is for the three variables:
+
+* `EDVisits` = Total ED/Inpatient Visits, 
+* `MaxPMExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `RoadwayExposure` = Major Roadway Highway Exposure.
+
+## Extracting the data through the OpenAPI
+
+We modified the code provided by Rose in `P(XYZ) Table.Rmd` to create data frames that contain the univariate, bivariate, and trivariate tables.
+
+**File** = `02_make_univariate_tables.Rmd`
+
+It creates the data frames `uni_all_df`, which contains all univariate results, and `uni_df`, which contains just the three features of interest.
+
+**File** = `03_make_bivariate_tables.Rmd`
+
+The following data frames are created.
+
+* `bivar_EDvsME_df`: `EDVisits` versus `MaxPMExposure`
+* `bivar_EDvsRE_df`: `EDVisits` versus `RoadwayExposure`
+* `bivar_REvsME_df`: `RoadwayExposure` versus `MaxPMExposure`
+
+**File**  `04_make_trivariate_table.Rmd`
+
+It creates the data frame `tri_df`
+
+## Validation of the tables
+
+**File** `05_validate_tables.Rmd`
+
+Some basic examination of marginal distributions to explore differences in results based on how the OpenAPI was programmed. 
+
+## Exploratory analysis
+
+**File** = `06_exploratory_visual_analysis.Rmd`
+
+As a general rule, I think that getting the right graphical analysis will lead to getting the right statistical analysis. In this file, I consider a variety of visual displays that eventually lead to the approach taken in the next file.
+
+## Statistical analysis
+
+**File** = `07_statistical_analysis.Rmd`
+
+Given that the EDVisits variable is actually a count and not a bin, I have come to the conclusion that it is possible to actually "recreate" the original binned data in a form that is suitable for statistical analysis. That analysis is in this file.
+
+The graphics developed in the previous file are now presented with correct error estimates.
+
+This file also suggests some parameter estimates and statistical measures that can be compared when fitting models using "the same" data from two different data sources; namely, from the OpenAPI and from behind the firewall.
+
+** File ** = `08_summary_and_conclusions.Rmd`
+
+A brief summary of the major findings and methods used in this project.
+

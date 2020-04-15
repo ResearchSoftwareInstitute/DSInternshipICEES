@@ -1,0 +1,234 @@
+---
+title: "Statistical Analysis"
+author: "Haaland"
+date: "3/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE }
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(emmeans)
+library(MASS)
+load("RData/tri_df.RData")
+```
+
+## Introduction
+
+
+The previous visual analysis, I came to the conclusion that the current data, can easily be translated to a form that is suitable for general analysis. In particular, EDVisits is an actual count, not a bin. So if we can recover the "pre-binned" data for EDVisits just by expanding the data based on the count value. Of course, the remaining two variable remain as binned variables, so we need to be sure we treat them as factors in the analysis. Just as a reminder, the data, as extracted and reformatted is shown below. 
+
+```{r, message=FALSE}
+head(tri_df)
+```
+
+## Expanding the data
+
+So the plan, is to replicate each row of the `tri_df` data frame by the value of the variable Frequency. Once we do that, we will also recode the two exposure variables so that they are clearly factors and not numeric. First we create the expanded data frame, then we will check for correctness.
+
+```{r}
+expand_df <- tri_df %>%
+  arrange(EDVisits, RoadwayExposure, MaxPMExposure)
+expand_df <- tibble(EDVisits = rep(expand_df$EDVisits, expand_df$Frequency), 
+              RoadwayExposure = rep(expand_df$RoadwayExposure, expand_df$Frequency), 
+              MaxPMExposure = rep(expand_df$MaxPMExposure, expand_df$Frequency),
+              Frequency = rep(expand_df$Frequency, expand_df$Frequency)) 
+```
+
+The following code compares the computed frequencies in the new data frame to those from the original data frame. One complication is that the expansion eliminates all rows in the original data frame that had zero frequency. So we have to adjust for that in code. The test at the end of this block compares the original nonzero Frequencies to those computed from the new data.
+
+```{r}
+check1_df  <- expand_df %>%
+  group_by(EDVisits, RoadwayExposure, MaxPMExposure) %>%
+  arrange(EDVisits, RoadwayExposure, MaxPMExposure) %>%
+  summarize(newFreq = n())
+check2_df <- tri_df %>%
+  filter(Frequency != 0) %>% 
+  arrange(EDVisits, RoadwayExposure, MaxPMExposure) 
+all(check2_df$Frequency==check1_df$newFreq)
+```
+
+Before going further, we are going to modify the two exposures to make sure they will be treated as factors in all subsequent analysis. We will also drop the Frequency variable as that is no longer relevant.
+
+```{r}
+expand_df <- expand_df %>%
+  mutate(RoadwayExposure = paste0("RExp=", RoadwayExposure),
+         MaxPMExposure = paste0("PMExp=", MaxPMExposure)) %>%
+  dplyr::select(-Frequency) %>%
+  mutate(RoadwayExposure = as.factor(RoadwayExposure),
+         MaxPMExposure = as.factor(MaxPMExposure))
+head(expand_df)
+```
+
+
+## Graphical analysis
+
+Next we make a few graphs similar to those in the previous file so that we can verify our intuition about the correctness of the data.
+
+
+### Comparing EdVisits distributions within a particular type of exposure
+
+Another ways to more specifically compare effects is to put multiple curves on the same figure. An example is shown below.
+
+```{r, fig.width = 7.5, fig.height = 7.5, message = FALSE}
+expand_df %>%
+  ggplot(aes(x = EDVisits)) +
+    geom_histogram(binwidth = 1) +
+    facet_grid(RoadwayExposure~MaxPMExposure) +
+    labs(y = "Frequency") +
+    scale_x_continuous(breaks = 0:9) +
+    scale_y_log10() +
+    theme(text = element_text(size = 20))
+    
+```
+
+
+## Fitting the GLM model
+
+The data now are organized appropriately and match the assumptions of a generalized linear model with a Poisson family error distribution. Note that the first model we fit includes the interaction between the two exposure types. One of the first tasks of assessing the model is to determine whether or not there is over dispersion. We do that below.
+
+```{r}
+glm_fit1 <- glm(EDVisits  ~ RoadwayExposure*MaxPMExposure,
+                data = expand_df, 
+               family = poisson)
+summary(glm_fit1)
+```
+
+The primary indication of over-dispersion in a Poisson model is when the Residual Deviance (here 33664) is greater than the degrees of freedom (23006). Since we see that here, we go to the next step of fitting a quasi-Poisson model that estimates the dispersion factor instead of assuming that it is 1.0.
+
+
+```{r}
+glm_fit2 <- glm(EDVisits  ~ RoadwayExposure*MaxPMExposure,
+                data = expand_df, 
+               family = quasipoisson)
+summary(glm_fit2)
+```
+
+
+The following shows the p-value from likelihood-ratio test in which the alternative hypothesis is that a quasi-Poisson GLM with over-dispersion is significantly better than a regular Poisson GLM without over-dispersion. Note the p-value is essentially 0 so we conclude that there is a strong indication of over-dispersion, and we go with the quasi-Poisson family.
+
+```{r}
+pchisq(summary(glm_fit2)$dispersion * glm_fit1$df.residual, glm_fit1$df.residual, lower = F)
+```
+
+
+We show the standard diagnostic plots below. We don't see anything particularly unusual in these plots.
+
+```{r}
+plot(glm_fit2, ask = FALSE)
+
+```
+
+Finally we look at an analysis of variance type summary of the model. We see that both exposure types and their interaction are significant.
+
+```{r}
+summary(aov(glm_fit2))
+```
+
+
+## Visualizing the model
+
+### Main effect of particle exposure
+
+We use the package `emmeans` to calculate estimated means and confidence intervals for the main effect of `MaxPMExposure`. For this initial plot, we are only considering the "main effect". A full understanding requires looking at the interaction plot, which we will do shortly.
+
+
+```{r, message=F}
+pmeff_df <- emmeans(glm_fit2, ~ MaxPMExposure) %>%
+  as.data.frame %>%
+  mutate(pmmean = exp(emmean),
+         LCL = exp(asymp.LCL),
+         UCL = exp(asymp.UCL))
+  pmeff_df
+```
+
+I am not familiar enough with the data to comment on how surprising the plot below is. In particular, I find it odd that the exposure level of 4 shows a decrease as my naive assumption is that emergency visits would increase monotonically with exposure levels. 
+
+```{r}
+pmeff_df %>%
+  ggplot(aes(x = MaxPMExposure, y = pmmean)) +
+    geom_point() +
+    geom_line(aes(x = 1:5, y = pmmean)) +
+    geom_errorbar(aes(ymin = LCL, ymax = UCL), width = .1) +
+    labs(y = "Mean ED Visits",
+      title = "GLM Main Effects Plot for MaxPMExposure") +
+    scale_y_continuous(breaks = seq(0, 1, by = .2), 
+                       limits = c(0, 1)) +
+    theme(text = element_text(size = 10))
+```
+
+### Main effect of roadway exposure
+
+Once again, we use the package `emmeans` to calculate estimated means and confidence intervals for the main effect of `RoadwayExposure`. For this initial plot, we are only considering the "main effect". A full understanding requires looking at the interaction plot, which we will do shortly.
+
+
+```{r, message=F}
+rweff_df <- emmeans(glm_fit2, ~ RoadwayExposure) %>%
+  as.data.frame %>%
+  mutate(rwmean = exp(emmean),
+         LCL = exp(asymp.LCL),
+         UCL = exp(asymp.UCL))
+  rweff_df
+```
+
+The main effect of roadway exposure shows that there the highest mean is at the exposure level of 2. The impact of RoadwayExposure, by itself, seems to be fairly small. I am not familiar enough with the data to comment on the shape of the curve.
+
+```{r}
+rweff_df %>%
+  ggplot(aes(x = RoadwayExposure, y = rwmean)) +
+    geom_point() +
+    geom_line(aes(x = 1:6, y =rwmean)) +
+    geom_errorbar(aes(ymin = LCL, ymax = UCL), width = .1) +
+    labs(y = "Mean ED Visits",
+      title = "GLM Main Effects Plot for RoadwayExposure") +
+    scale_y_continuous(breaks = seq(0, 1, by = .2), 
+                       limits = c(0, 1)) +
+    theme(text = element_text(size = 10))
+```
+
+### Interaction effect
+
+Because the two main effects interact significantly, the best interpretation is to make the full interaction plot. In particular, we do the calculations so that we can estimate mean EDVisits at each combination of exposures.
+
+
+```{r, message=F}
+inteff_df <- emmeans(glm_fit2, ~MaxPMExposure*RoadwayExposure) %>%
+  as.data.frame %>%
+  mutate(intmean = exp(emmean),
+         LCL = exp(asymp.LCL),
+         UCL = exp(asymp.UCL))
+  inteff_df
+```
+
+As we saw above, the average number of emergency visits is generally not a monotone function of particle exposure. The maximum number of visits as a function of particle exposure depends on the roadway exposure. I don't have the background to suggest a mechanism that might cause this.
+
+```{r, fig.width = 7}
+inteff_df %>%
+  ggplot(aes(x = MaxPMExposure, y = intmean)) +
+    geom_point() +
+    geom_line(aes(x = rep(1:5, 6), y = intmean)) +
+    geom_errorbar(aes(ymin = LCL, ymax = UCL), width = .1) +
+    facet_wrap(~ RoadwayExposure, ncol = 2) +
+    labs(y = "Mean ED Visits",
+      title = "Combined Effect of Two Exposure Types") +
+    scale_y_continuous(breaks = seq(0, 1, by = .2), 
+                       limits = c(0, 1.5)) +
+    theme(text = element_text(size = 10))
+```
+
+## Evaluating the statistical model
+
+One of the goals of this project is to identify parameters and statistical measures that can be used to compare the fit of the same type of statistical model to data obtained through the OpenAPI versus behind the firewall. Below we illustrate some code to extract values that could be used to compare two models:
+
+```{r}
+cat("Deviance =", deviance(glm_fit2),"\n\n")
+cat("Coefficients =", coefficients(glm_fit2), "\n\n")
+em1 <- emmeans(glm_fit2, ~MaxPMExposure*RoadwayExposure) %>%
+  as.data.frame
+cat("Log Scale Estimated Means = ", em1$emmean, "\n\n")
+cat("Log Scale SEs = ", em1$SE, "\n\n")
+```
+
+For any of the parameter estimates or statistics, two models could be compared by computed the sum of squared differences. The criteria for comparing the models, would need to be developed through experience.
+

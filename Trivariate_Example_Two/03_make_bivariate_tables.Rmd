@@ -1,0 +1,351 @@
+---
+title: "Make Bivariate Tables"
+author: "Perry Haaland"
+date: "03/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(jsonlite)
+library(httr)
+```
+
+## Introduction
+
+Eventually we are going to extract a three-way table and the three corresponding two-way tables using the OpenAPI, and the univariate counts for each variable separately. Because we are using the OpenAPI, we are extracting pre-binned data. The extracted values are also subject the privacy constraints of the system in terms of reporting low frequency cell counts.
+
+The univariate counts for each variable are the univariate marginal distribution across the bins. The two-way tables are the bivariate marginal distributions. The three-way table, which is the full multivariate distribution is constrained by its marginal distributions, so we can use those to check on the correctness of the OpenAPI results.
+
+* Before running this chunks in this script, please run the code in `02_make_univariate_tables.Rmd'.
+
+We use the `json` format of the interface. The data set that we are extracting from is
+
+* Cohort 22 (all patients),
+* 2010 data,
+* Version 1.0.0 of ICEES.
+
+In this file we extract the bivariate tables. The features that we are working with are as follows:
+
+* `EDVisits` = Total ED/Inpatient Visits, 
+* `MaxPMExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `RoadwayExposure` = Major Roadway Highway Exposure.
+
+We will extract the three bivariate combinations of the three features (Total ED/Inpatient Visits, Average Daily PM 2.5 Exposure, Major Roadway Highway Exposure) from the ICEES API. We will use the parameters of: Cohort 22 (all patients), year 2010, version 1.0.0 of ICEES data, and patient level data. We will also be using the Hypothesis Driven NxN Feature Association Functionality.
+
+## Revisiting the relevant univariate features
+
+My current understanding of the OpenAPI, is that the request for bivariate tables has to be hard coded specific for each feature. It seems to me that there should be a way to automate this and get all bivariate tables, or at least to get bivariate tables by just giving the feature names. That task may be left to a graduate student when we get one.
+
+In order to do the hard coding, we need to know the bins for each feature. Here is that information. Note that there are 30 rows in the first table. After the first 10 rows, all of the counts are 10 or less. It seems like the higher ones should be binned before proceeding to the two-way tables.
+
+
+```{r}
+## uni_df was created in the document 02_make_univariate_tables.Rmd
+load("RData/uni_df.RData")
+uni_df %>%
+  filter(Feature == "EDVisits")
+```
+
+
+```{r}
+uni_df %>%
+  filter(Feature == "MaxPMExposure")
+```
+
+
+```{r}
+uni_df %>%
+  filter(Feature == "RoadwayExposure")
+```
+
+## Creating the bivariate tables
+
+In order to make the code clearer, and perhaps pave the way for later automation, we create some variables that will be used in the OpenAPI calls. The first call will be `TotalEDInpatientVisits` versus `MaxDailyPM2.5Exposure_qcut`.
+
+* Note: The range of TotalEDInpatientVisits, as we saw above goes up to 51 visit. Because all of the values of 10 or more are relatively small, we don't expect them to be returned as actual numbers but will be replaced by NA's because of the privacy constraints. So in this example we are just going to ignore the upper range. 
+
+* An alternative to this strategy would be to group all of the 10 visits or above subjects into one group. We leave that as an exercise for the future.
+
+### Table 1. Total ED Inpatient Visits versus Maximum Daily PM 2.5 Exposure
+I picked a generic name for the table, for the time being. There probably should be more internal error checking.
+
+```{r, message=FALSE}
+body_bivar1 ='{
+                     "feature_a": {
+                     "TotalEDInpatientVisits": [
+                     {
+                     "operator": "=",
+                     "value": 0
+                     }, {
+                     "operator": "=",
+                     "value": 1
+                     }, {
+                     "operator": "=",
+                     "value": 2
+                     },{
+                     "operator": "=",
+                     "value": 3
+                      },{
+                     "operator": "=",
+                    "value": 4
+                     }, {
+                     "operator": "=",
+                     "value": 5
+                     }, {
+                     "operator": "=",
+                     "value": 6
+                     }, {
+                     "operator": "=",
+                     "value": 7
+                     }, {
+                     "operator": "=",
+                     "value": 8
+                     }, {
+                     "operator": "=",
+                      "value": 9
+                     }
+                     ]
+                     },
+                     "feature_b": {
+                     "MaxDailyPM2.5Exposure_qcut": [
+                     {
+                     "operator": "=",
+                     "value": 1
+                     },
+                     {
+                     "operator": "=",
+                     "value": 2
+                     },
+                     {
+                     "operator": "=",
+                     "value": 3
+                     },
+                     {
+                     "operator": "=",
+                    "value": 4
+                     },
+                     {
+                     "operator": "=",
+                     "value": 5
+                     }
+                     ]
+                     }
+                     }'
+## bivar1 is what Rose called PM2.5data
+bivar1_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
+                     body = body_bivar1,
+          accept_json(),
+          content_type("application/json"),
+          encode = "json")
+bivar1_text <- httr::content(bivar1_call, "text")
+bivar1_list <- jsonlite::fromJSON(bivar1_text, flatten = TRUE)$`return value`
+## have to hard code these values
+EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+MaxExposure = c(1, 2, 3, 4, 5)
+for(i in 1:5){
+  temp_df <- data.frame(EDVisits = EDVisits, 
+                        MaxPMExposure = MaxExposure[i],
+                        Frequency = bivar1_list$feature_matrix[[i]]$frequency)
+  if(i == 1) {
+    bivar1_df = temp_df
+  } else {
+    bivar1_df <- rbind(bivar1_df,temp_df)
+  }
+}
+bivar_EDvsME_df = bivar1_df
+bivar_EDvsME_df
+
+```
+
+### Table 2. Total ED Inpatient Visits versus Major Roadway Highway Exposure
+
+The second call will be `TotalEDInpatientVisits` versus `MajorRoadwayHighwayExposure`.
+
+```{r, message=FALSE}
+body_bivar2 ='{
+                  "feature_a": {
+                  "TotalEDInpatientVisits": [
+                     {
+                  "operator": "=",
+                  "value": 0
+                  }, {
+                  "operator": "=",
+                  "value": 1
+                  }, {
+                  "operator": "=",
+                  "value": 2
+                  },{
+                  "operator": "=",
+                  "value": 3
+                  },{
+                  "operator": "=",
+                  "value": 4
+                  }, {
+                  "operator": "=",
+                  "value": 5
+                  }, {
+                  "operator": "=",
+                  "value": 6
+                  },
+                  {
+                  "operator": "=",
+                  "value": 7
+                  }, {
+                  "operator": "=",
+                  "value": 8
+                  }, {
+                  "operator": "=",
+                  "value": 9
+                  }
+                  ]
+                  },
+                  "feature_b": {
+                  "MajorRoadwayHighwayExposure": [
+                  {
+                  "operator": "=",
+                  "value": 1
+                  },
+                  {
+                  "operator": "=",
+                  "value": 2
+                  },
+                  {
+                  "operator": "=",
+                  "value": 3
+                  },
+                  {
+                  "operator": "=",
+                  "value": 4
+                  },
+                  {
+                  "operator": "=",
+                  "value": 5
+                  },
+                  {
+                  "operator": "=",
+                  "value": 6
+                  }
+                  ]
+                  }
+                  }'
+bivar2_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
+                     body = body_bivar2,
+          accept_json(),
+          content_type("application/json"),
+          encode = "json")
+bivar2_text <- httr::content(bivar2_call, "text")
+bivar2_list <- jsonlite::fromJSON(bivar2_text, flatten = TRUE)$`return value`
+## have to hard code these values
+EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+MaxRoadway = c(1, 2, 3, 4, 5, 6)
+for(i in 1:6){
+  temp_df <- data.frame(EDVisits = EDVisits, 
+                        RoadwayExposure = MaxRoadway[i],
+                        Frequency = bivar2_list$feature_matrix[[i]]$frequency)
+  if(i == 1) {
+    bivar2_df = temp_df
+  } else {
+    bivar2_df <- rbind(bivar2_df,temp_df)
+  }
+}
+bivar_EDvsRE_df = bivar2_df
+bivar_EDvsRE_df
+```
+
+### Table 3. Major Roadway Highway Exposure versus Maximum Daily PM2.5 Exposure
+
+The third call will be for `MajorRoadwayHighwayExposure` vs `MaxDailyPM2.5Exposure_qcut`
+
+```{r, message=FALSE}
+body_bivar3 ='{
+                      "feature_a": {
+                      "MajorRoadwayHighwayExposure": [
+                      {
+                      "operator": "=",
+                      "value": 1
+                      },
+                      {
+                      "operator": "=",
+                      "value": 2
+                      },
+                      {
+                      "operator": "=",
+                      "value": 3
+                      },
+                      {
+                      "operator": "=",
+                      "value": 4
+                      },
+                      {
+                      "operator": "=",
+                      "value": 5
+                      },
+                      {
+                      "operator": "=",
+                      "value": 6
+                      }
+                      ]
+                      },
+                      "feature_b": {
+                      "MaxDailyPM2.5Exposure_qcut": [
+                      {
+                      "operator": "=",
+                      "value": 1
+                      },
+                      {
+                      "operator": "=",
+                      "value": 2
+                      },
+                      {
+                      "operator": "=",
+                      "value": 3
+                      },
+                      {
+                      "operator": "=",
+                      "value": 4
+                      },
+                      {
+                      "operator": "=",
+                      "value": 5
+                      }
+                      ]
+                      }
+                      }'
+bivar3_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/feature_association2",
+                     body = body_bivar3,
+          accept_json(),
+          content_type("application/json"),
+          encode = "json")
+bivar3_text <- httr::content(bivar3_call, "text")
+bivar3_list <- jsonlite::fromJSON(bivar3_text, flatten = TRUE)$`return value`
+## have to hard code these values
+MaxRoadway = c(1, 2, 3, 4, 5, 6)
+MaxExposure = c(1, 2, 3, 4, 5)
+for(i in 1:5){
+  temp_df <- data.frame(RoadwayExposure = MaxRoadway, 
+                        MaxPMExposure = MaxExposure[i],
+                        Frequency = bivar3_list$feature_matrix[[i]]$frequency)
+  if(i == 1) {
+    bivar3_df = temp_df
+  } else {
+    bivar3_df <- rbind(bivar3_df,temp_df)
+  }
+}
+bivar_REvsME_df = bivar3_df
+bivar_REvsME_df
+```
+
+## Save the resulting data frames
+
+
+```{r}
+save(bivar_REvsME_df, file = "RData/bivar_REvsME_df.RData")
+save(bivar_EDvsRE_df, file = "RData/bivar_EDvsRE_df.RData")
+save(bivar_EDvsME_df, file = "RData/bivar_EDvsME_df.RData")
+
+
+```
+
+

@@ -1,0 +1,43 @@
+---
+title: "Summary and Conclusions"
+author: "Haaland"
+date: "3/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Summary
+
+We adapted previously written code to extract a three-way table from ICEES using the OpenAPI. The variable used were:
+
+* `EDVisits` = Total ED/Inpatient Visits, 
+* `MaxPMExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `RoadwayExposure` = Major Roadway Highway Exposure.
+
+As part of our validation effort we extracted univariate tables for each feature, and bivariate tables for each pair of tables. We compared all relevant marginal distributions, and noted discrepancies. The variable `EDVisits` included only a portion of the possible values. We noted that this affected the data in any table that included this variable.
+
+One of the key features of the analysis was that we provided well documented code to convert the data from the OpenAPI to standard R data frames suitable for further analysis. We used the trivariate table to create a new data frame that was then used as input to a Generalized Linear Model. From that model we produced a variety of statistical summaries and graphical displays.
+
+An important part of this analysis was to use "best practices" for code organization and style, in order to help make this work product more easily reused.
+
+## Conclusions
+
+The main conclusions of this analysis are as follows:
+
+1. Because `EDVisits` is a count and so not binned, the OpenAPI tables can be expanded based on the trivariate table frequencies to create a data set that should be directly comparable to the binned data from behind the firewall. The other two variables, which are binned, can be used as factors in a statistical analysis.
+
+2. The expanded data can be used as input for a Generalized Linear Model (GLM) using a Poisson family error distribution. `EDVisits` was used as the response (dependent variable). `MaxPMExposure` and `RoadwayExposure` were used predictors after converting them to factors (discrete variables). The model included both the main effects and the two way interaction.
+
+3. Based on an evaluation of the fitted model, we concluded that the response is more variable than would be expected from a Poisson distribution. That is, the response variable shows over-dispersion. Consequently, we fit a quasi-Poisson family model, which appeared more satisfactory.
+
+4. The main effects and their interaction were statistically significant (P < .05).
+
+5. We used a specialized R function to extract the estimated mean number of `EDVisits` for each combination of the predictor variables. This function also provided confidence intervals for each estimated mean. We used this output to create informative plots showing the main and interaction effects from the model with appropriate error bars.
+
+6. We identified several parameter estimates and statistics that can be extracted from the model that could be used to compare the fit of data extracted from by this method using the OpenAPI to binned data extracted from behind the firewall.
+
+7. We believe that the approach used here should be applicable to other combinations of variables and could be used to develop use cases for validating statistical models based on data extracted via the OpenAPI.
+
