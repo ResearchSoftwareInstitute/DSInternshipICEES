@@ -23,7 +23,7 @@ We use the `json` format of the interface. The data set that we are extracting f
 
 * Cohort 22 (all patients),
 * 2010 data,
-* Version 1.0.0 of ICEES.
+* Version 3.0.0 of ICEES.
 
 In this file, we extract the univariate tables for each feature. The output of this file is the data frame `uni_all_df`.
 
