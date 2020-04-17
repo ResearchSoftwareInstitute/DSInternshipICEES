@@ -34,7 +34,7 @@ We first get the univariate counts for all features (variables) the ICEES databa
 
 ```{r univariate, message=FALSE}
 ## no need to see uninformative messages in the markdown document
-url <- "https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/features"
+url <- "https://icees.renci.org/3.0.0/patient/2010/cohort/COHORT%3A22/features"
 ## extract the data in json format
 univariate.call <- httr::GET(url,
           accept_json(),
@@ -51,7 +51,6 @@ Note that the current data object, `univariate.list`, has the univariate binned 
 
 ```{r}
 names(univariate.list)
-##this is a change
 ```
 
 The first component of the output are the frequencies and percentages in each bin.
@@ -125,8 +124,8 @@ length(unique(uni_all_df$feature))
 We select the three features of interest and rename the variables with simpler names for use later.
 
 * `EDVisits` = Total ED/Inpatient Visits, 
-* `MaxPMExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
-* `RoadwayExposure` = Major Roadway Highway Exposure.
+* `AvgDailyPMExposure` = Average Daily PM 2.5 Exposure (qcut), 
+* `Race` = Race.
 
 ```{r}
 uni_df <- uni_all_df %>% 
