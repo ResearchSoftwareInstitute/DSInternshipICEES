@@ -129,9 +129,9 @@ We select the three features of interest and rename the variables with simpler n
 
 ```{r}
 uni_df <- uni_all_df %>% 
-  filter(str_detect(feature, 
-  'Race|AvgDailyPM2.5Exposure_qcut|TotalEDInpatientVisits')) %>%
-  mutate(feature = recode(feature, TotalEDInpatientVisits = "EDVisits",
+  filter(str_detect(feature, 'Race|AvgDailyPM2.5Exposure_qcut|TotalEDInpatientVisits')) %>%
+   select(Feature = feature, Value = value, Frequency = frequency) %>%
+  mutate(Feature = recode(Feature, TotalEDInpatientVisits = "EDVisits",
                           AvgDailyPM2.5Exposure_qcut = "AvgDailyPMExposure",
                           Race = "Race"))
 uni_df
