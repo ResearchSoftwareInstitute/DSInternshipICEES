@@ -69,7 +69,10 @@ In order to make the code clearer, and perhaps pave the way for later automation
 * An alternative to this strategy would be to group all of the 10 visits or above subjects into one group. We leave that as an exercise for the future.
 
 ### Table 1. Total ED Inpatient Visits versus Average Daily PM 2.5 Exposure
+
 I picked a generic name for the table, for the time being. There probably should be more internal error checking.
+
+* Note: as compared to the earlier example, we are now going to include all ED Visits of 10 or more as the value of 10.
 
 ```{r, message=FALSE}
 body_bivar1 ='{
@@ -105,6 +108,9 @@ body_bivar1 ='{
                      }, {
                      "operator": "=",
                       "value": 9
+                     }, {
+                     "operator": ">=",
+                       "value": 10
                      }
                      ]
                      },
@@ -142,7 +148,7 @@ bivar1_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COH
 bivar1_text <- httr::content(bivar1_call, "text")
 bivar1_list <- jsonlite::fromJSON(bivar1_text, flatten = TRUE)$`return value`
 ## have to hard code these values
-EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 AvgExposure = c(1, 2, 3, 4, 5)
 for(i in 1:5){
   temp_df <- data.frame(EDVisits = EDVisits, 
@@ -162,6 +168,14 @@ bivar_EDvsME_df
 ### Table 2. Total ED Inpatient Visits versus Race
 
 The second call will be `TotalEDInpatientVisits` versus `Race`.
+
+To correctly get the values for Race, we need to examine it a bit more closely:
+
+```{r}
+uni_all_df %>%
+  filter(feature == "Race")
+```
+
 
 ```{r, message=FALSE}
 body_bivar2 ='{
@@ -198,34 +212,40 @@ body_bivar2 ='{
                   }, {
                   "operator": "=",
                   "value": 9
+                  }, {
+                  "operator": ">=",
+                  "value": 10
                   }
                   ]
                   },
                   "feature_b": {
-                  "MajorRoadwayHighwayExposure": [
+                  "Race": [
                   {
                   "operator": "=",
-                  "value": 1
+                  "value": "African American"
                   },
                   {
                   "operator": "=",
-                  "value": 2
+                  "value": "Asian"
                   },
                   {
                   "operator": "=",
-                  "value": 3
+                  "value": "Caucasian"
                   },
                   {
                   "operator": "=",
-                  "value": 4
+                  "value": "Hawaiian / Other Pac"
                   },
                   {
                   "operator": "=",
-                  "value": 5
+                  "value": "Native American"
                   },
                   {
                   "operator": "=",
-                  "value": 6
+                  "value": "Other"
+                  },{
+                  "operator"; "=",
+                  "value": "Unknown"
                   }
                   ]
                   }
@@ -238,8 +258,10 @@ bivar2_call <- httr::POST("https://icees.renci.org/1.0.0/patient/2010/cohort/COH
 bivar2_text <- httr::content(bivar2_call, "text")
 bivar2_list <- jsonlite::fromJSON(bivar2_text, flatten = TRUE)$`return value`
 ## have to hard code these values
-EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-MaxRoadway = c(1, 2, 3, 4, 5, 6)
+EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+## pdh: Needs updating from here
+## but the code above doesn't work
+Race = c(1, 2, 3, 4, 5, 6)
 for(i in 1:6){
   temp_df <- data.frame(EDVisits = EDVisits, 
                         RoadwayExposure = MaxRoadway[i],

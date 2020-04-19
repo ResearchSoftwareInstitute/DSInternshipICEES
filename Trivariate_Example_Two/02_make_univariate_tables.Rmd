@@ -66,10 +66,10 @@ cat("Number of Features = ", length(univariate.list$feature.feature_name),"\n")
 univariate.list$feature.feature_name[1:5]
 ```
 
-The third component provides the bin identifications. This may be a range or a single value. The bin identifiers for the first variable `AgeStudyStart` are shown below. This feature has been reported in 6 bins, based on age ranges.
+The third component provides the bin identifications. This may be a range or a single value. The bin identifiers for the first variable `Race` are shown below. This feature has been reported in 6 bins, based on age ranges.
 
 ```{r, message=FALSE}
-univariate.list$feature.feature_qualifiers[[1]]
+univariate.list$feature.feature_qualifiers[[3]]
 ```
 
 The bins may also correspond to single values as for the second feature, `Sex`.
@@ -121,7 +121,24 @@ length(unique(uni_all_df$feature))
 
 ## Make a smaller table with just the three relevant variables
 
-We select the three features of interest and rename the variables with simpler names for use later.
+The request for the first analysis is to examine the variables:
+
+*Parameters*
+
+* v3.0.0
+* Year 2010
+* Patient table
+* TotalEDInpatientVisits
+* AvgDailyPM2.5Exposure_StudyAvg_qcut
+* Race
+
+Note that we have not been able to get v3.0.0 to work so all of this code is using v1.0.0. We also note that the requested variable for PM2.5 exposure is not in the database:
+
+```{r}
+unique(as.character(uni_all_df$feature))[grep("Avg",unique(as.character(uni_all_df$feature)))]
+```
+
+So we are going to use the original PM exposure variable as shown below. We select the three features of interest and rename the variables with simpler names for use later.
 
 * `EDVisits` = Total ED/Inpatient Visits, 
 * `AvgDailyPMExposure` = Average Daily PM 2.5 Exposure (qcut), 
