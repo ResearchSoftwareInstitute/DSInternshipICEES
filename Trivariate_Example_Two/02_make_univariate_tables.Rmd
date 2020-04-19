@@ -34,7 +34,7 @@ We first get the univariate counts for all features (variables) the ICEES databa
 
 ```{r univariate, message=FALSE}
 ## no need to see uninformative messages in the markdown document
-url <- "https://icees.renci.org/3.0.0/patient/2010/cohort/COHORT%3A22/features"
+url <- "https://icees.renci.org/1.0.0/patient/2010/cohort/COHORT%3A22/features"
 ## extract the data in json format
 univariate.call <- httr::GET(url,
           accept_json(),
@@ -129,11 +129,11 @@ We select the three features of interest and rename the variables with simpler n
 
 ```{r}
 uni_df <- uni_all_df %>% 
-  filter(str_detect(feature, 'MaxDailyPM2.5Exposure_qcut|MajorRoadwayHighwayExposure|TotalEDInpatientVisits')) %>%
-  select(Feature = feature, Value = value, Frequency = frequency) %>%
+  filter(str_detect(feature, 'Race|AvgDailyPM2.5Exposure_qcut|TotalEDInpatientVisits')) %>%
+   select(Feature = feature, Value = value, Frequency = frequency) %>%
   mutate(Feature = recode(Feature, TotalEDInpatientVisits = "EDVisits",
-                          MajorRoadwayHighwayExposure = "RoadwayExposure",
-                          MaxDailyPM2.5Exposure_qcut = "MaxPMExposure"))
+                          AvgDailyPM2.5Exposure_qcut = "AvgDailyPMExposure",
+                          Race = "Race"))
 uni_df
   
 ```
