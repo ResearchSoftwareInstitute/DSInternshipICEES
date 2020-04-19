@@ -29,10 +29,10 @@ We use the `json` format of the interface. The data set that we are extracting f
 In this file we extract the bivariate tables. The features that we are working with are as follows:
 
 * `EDVisits` = Total ED/Inpatient Visits, 
-* `AvgDailyPMExposure` = Average Daily PM 2.5 Exposure (qcut), 
-* `Race` = Race.
+* `MaxPMExposure` = Maximum Daily PM 2.5 Exposure (qcut), 
+* `RoadwayExposure` = Major Roadway Highway Exposure.
 
-We will extract the three bivariate combinations of the three features (Total ED/Inpatient Visits, Average Daily PM 2.5 Exposure, Race) from the ICEES API. We will use the parameters of: Cohort 22 (all patients), year 2010, version 1.0.0 of ICEES data, and patient level data. We will also be using the Hypothesis Driven NxN Feature Association Functionality.
+We will extract the three bivariate combinations of the three features (Total ED/Inpatient Visits, Average Daily PM 2.5 Exposure, Major Roadway Highway Exposure) from the ICEES API. We will use the parameters of: Cohort 22 (all patients), year 2010, version 1.0.0 of ICEES data, and patient level data. We will also be using the Hypothesis Driven NxN Feature Association Functionality.
 
 ## Revisiting the relevant univariate features
 
@@ -51,24 +51,24 @@ uni_df %>%
 
 ```{r}
 uni_df %>%
-  filter(Feature == "AvgDailyPMExposure")
+  filter(Feature == "MaxPMExposure")
 ```
 
 
 ```{r}
 uni_df %>%
-  filter(Feature == "Race")
+  filter(Feature == "RoadwayExposure")
 ```
 
 ## Creating the bivariate tables
 
-In order to make the code clearer, and perhaps pave the way for later automation, we create some variables that will be used in the OpenAPI calls. The first call will be `TotalEDInpatientVisits` versus `AvgDailyPM2.5Exposure_qcut`.
+In order to make the code clearer, and perhaps pave the way for later automation, we create some variables that will be used in the OpenAPI calls. The first call will be `TotalEDInpatientVisits` versus `MaxDailyPM2.5Exposure_qcut`.
 
 * Note: The range of TotalEDInpatientVisits, as we saw above goes up to 51 visit. Because all of the values of 10 or more are relatively small, we don't expect them to be returned as actual numbers but will be replaced by NA's because of the privacy constraints. So in this example we are just going to ignore the upper range. 
 
 * An alternative to this strategy would be to group all of the 10 visits or above subjects into one group. We leave that as an exercise for the future.
 
-### Table 1. Total ED Inpatient Visits versus Average Daily PM 2.5 Exposure
+### Table 1. Total ED Inpatient Visits versus Maximum Daily PM 2.5 Exposure
 I picked a generic name for the table, for the time being. There probably should be more internal error checking.
 
 ```{r, message=FALSE}
@@ -109,7 +109,7 @@ body_bivar1 ='{
                      ]
                      },
                      "feature_b": {
-                     "AvgDailyPM2.5Exposure_qcut": [
+                     "MaxDailyPM2.5Exposure_qcut": [
                      {
                      "operator": "=",
                      "value": 1
@@ -143,10 +143,10 @@ bivar1_text <- httr::content(bivar1_call, "text")
 bivar1_list <- jsonlite::fromJSON(bivar1_text, flatten = TRUE)$`return value`
 ## have to hard code these values
 EDVisits = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-AvgExposure = c(1, 2, 3, 4, 5)
+MaxExposure = c(1, 2, 3, 4, 5)
 for(i in 1:5){
   temp_df <- data.frame(EDVisits = EDVisits, 
-                        AvgDailyPMExposure = AvgExposure[i],
+                        MaxPMExposure = MaxExposure[i],
                         Frequency = bivar1_list$feature_matrix[[i]]$frequency)
   if(i == 1) {
     bivar1_df = temp_df
@@ -159,9 +159,9 @@ bivar_EDvsME_df
 
 ```
 
-### Table 2. Total ED Inpatient Visits versus Race
+### Table 2. Total ED Inpatient Visits versus Major Roadway Highway Exposure
 
-The second call will be `TotalEDInpatientVisits` versus `Race`.
+The second call will be `TotalEDInpatientVisits` versus `MajorRoadwayHighwayExposure`.
 
 ```{r, message=FALSE}
 body_bivar2 ='{
@@ -256,7 +256,7 @@ bivar_EDvsRE_df
 
 ### Table 3. Major Roadway Highway Exposure versus Maximum Daily PM2.5 Exposure
 
-The third call will be for `Race` vs `AvgDailyPM2.5Exposure_qcut`
+The third call will be for `MajorRoadwayHighwayExposure` vs `MaxDailyPM2.5Exposure_qcut`
 
 ```{r, message=FALSE}
 body_bivar3 ='{
