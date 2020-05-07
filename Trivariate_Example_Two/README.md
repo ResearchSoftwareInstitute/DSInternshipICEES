@@ -31,3 +31,11 @@ icees.renic.org:16339/apidocs
 * TotalEDInpatientVisits
 * PM25_ANNUAL_AVERAGE_qcut
 * RESPONDER_STATUS (note that I ignored 'Neither' and collapsed "Hypo/Super Hypo')
+
+**Feature Discovery**
+
+The query below runs the ICEES functionality that I mentioned in a previous email and allows users to explore all of the available feature variables + bins for a cohort of interest. This can be parameterized as desired to specify, for instance, JSON output, etc.
+
+curl -X GET "https://icees.renci.org:16339/patient/2010/cohort/COHORT%3A1/features" -H  "accept: text/tabular"
+
+
